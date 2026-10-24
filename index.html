@@ -1,0 +1,896 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Plate Up">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Plate Up</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#121417">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: one-thumb phone column. Machine cards (photo-led) > tap = log sheet. Pin-stack meter is the signature detail. */
+:root{
+  --bg:#F1F2EF; --surface:#FFFFFF; --surface-2:#E8EAE6; --line:#D9DCD6;
+  --fg:#16181B; --muted:#5F656C; --faint:#8C9298;
+  --accent:#F2BE22; --accent-ink:#1B1600; --accent-text:#8A6400;
+  --up:#1F8A54; --up-bg:#DDF1E5; --hold:#2E64C4; --hold-bg:#E1E9F8; --down:#C3412F; --down-bg:#F8E1DD;
+  --shadow:0 1px 2px rgba(20,22,25,.06),0 8px 24px rgba(20,22,25,.06);
+  --scrim:rgba(14,16,18,.45);
+  --display:"Barlow Condensed","Arial Narrow","Roboto Condensed",system-ui,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r-lg:22px; --r-md:14px; --r-sm:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111316; --surface:#1A1D21; --surface-2:#23272C; --line:#2C3137;
+  --fg:#ECEDEA; --muted:#9AA0A6; --faint:#6B7177;
+  --accent:#F5C531; --accent-ink:#1B1600; --accent-text:#F5C531;
+  --up:#4CC98A; --up-bg:#16301F; --hold:#7FAEFF; --hold-bg:#18243A; --down:#FF7E6B; --down-bg:#3A1C17;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.25);
+  --scrim:rgba(0,0,0,.6); color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#111316; --surface:#1A1D21; --surface-2:#23272C; --line:#2C3137;
+  --fg:#ECEDEA; --muted:#9AA0A6; --faint:#6B7177;
+  --accent:#F5C531; --accent-ink:#1B1600; --accent-text:#F5C531;
+  --up:#4CC98A; --up-bg:#16301F; --hold:#7FAEFF; --hold-bg:#18243A; --down:#FF7E6B; --down-bg:#3A1C17;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.25);
+  --scrim:rgba(0,0,0,.6); color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:16px;line-height:1.45;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
+button:focus-visible,input:focus-visible,label:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input{font:inherit;color:inherit}
+.num{font-family:var(--display);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.eyebrow{font-family:var(--display);font-weight:600;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+.app{max-width:560px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 120px}
+
+/* header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-block:8px 18px}
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{width:34px;height:34px;border-radius:9px;background:var(--accent);display:grid;place-items:center}
+.brand-name{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:.02em;text-transform:uppercase;line-height:1}
+.unit-toggle{display:flex;background:var(--surface-2);border-radius:999px;padding:3px}
+.unit-toggle button{font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.08em;text-transform:uppercase;padding:6px 12px;border-radius:999px;color:var(--muted)}
+.unit-toggle button[aria-pressed="true"]{background:var(--surface);color:var(--fg);box-shadow:var(--shadow)}
+
+/* week summary */
+.week{background:var(--surface);border-radius:var(--r-lg);padding:18px;box-shadow:var(--shadow);display:grid;gap:16px}
+.week-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.week-days{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.day{display:grid;justify-items:center;gap:6px}
+.day span{font-size:12px;color:var(--faint);font-weight:600}
+.day i{width:100%;max-width:38px;aspect-ratio:1;border-radius:10px;background:var(--surface-2);display:block;position:relative}
+.day.on i{background:var(--accent)}
+.day.today span{color:var(--fg)}
+.day.today i{box-shadow:inset 0 0 0 2px var(--fg)}
+.day.on.today i{box-shadow:inset 0 0 0 2px var(--accent-ink)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;border-top:1px solid var(--line);padding-top:14px}
+.stat b{display:block;font-family:var(--display);font-weight:700;font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
+.stat small{font-size:13px;color:var(--muted)}
+
+/* section heading */
+.section-h{display:flex;justify-content:space-between;align-items:center;margin:28px 2px 12px}
+.section-h h2{margin:0;font-family:var(--display);font-weight:700;font-size:22px;text-transform:uppercase;letter-spacing:.04em}
+.link{color:var(--accent-text);font-weight:600;font-size:15px}
+
+.examples-note{display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--surface-2);border-radius:var(--r-md);padding:10px 14px;font-size:14px;color:var(--muted);margin-bottom:12px}
+.examples-note button{font-weight:600;color:var(--fg);white-space:nowrap}
+
+/* machine cards */
+.list{display:grid;gap:10px}
+.card{display:grid;grid-template-columns:76px 1fr auto;gap:14px;align-items:center;background:var(--surface);border-radius:var(--r-lg);padding:10px 14px 10px 10px;text-align:left;box-shadow:var(--shadow);transition:transform .15s ease}
+.card:active{transform:scale(.985)}
+.thumb{width:76px;height:76px;border-radius:15px;overflow:hidden;background:var(--surface-2);display:grid;place-items:center;position:relative;flex:none}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb .ph{font-family:var(--display);font-weight:800;font-size:28px;color:var(--muted);letter-spacing:.02em}
+.thumb .ph-lines{position:absolute;inset:auto 10px 10px 10px;display:grid;gap:3px}
+.thumb .ph-lines i{height:4px;border-radius:2px;background:var(--line);display:block}
+.card-main{min-width:0;display:grid;gap:4px}
+.card-name{font-weight:700;font-size:17px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-last{font-size:14px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-next{display:grid;justify-items:end;gap:5px}
+.card-next .w{font-family:var(--display);font-weight:800;font-size:34px;line-height:.9;font-variant-numeric:tabular-nums}
+.card-next .w small{font-size:15px;font-weight:600;color:var(--muted);margin-left:2px}
+
+.pill{justify-self:start;display:inline-flex;align-items:center;gap:5px;font-family:var(--display);font-weight:700;font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;padding:3px 8px 3px 7px;border-radius:999px;white-space:nowrap}
+.pill svg{width:11px;height:11px}
+.pill.up{background:var(--up-bg);color:var(--up)}
+.pill.hold{background:var(--hold-bg);color:var(--hold)}
+.pill.down{background:var(--down-bg);color:var(--down)}
+.pill.new{background:var(--surface-2);color:var(--muted)}
+
+/* empty state */
+.empty{background:var(--surface);border-radius:var(--r-lg);padding:28px 22px;box-shadow:var(--shadow);display:grid;gap:14px;justify-items:start}
+.empty h3{margin:0;font-family:var(--display);font-weight:800;font-size:30px;line-height:1;text-transform:uppercase;text-wrap:balance}
+.empty p{margin:0;color:var(--muted);max-width:42ch}
+.empty-steps{display:grid;gap:10px;margin:4px 0 6px;padding:0;list-style:none;counter-reset:s}
+.empty-steps li{display:flex;gap:12px;align-items:center;counter-increment:s}
+.empty-steps li::before{content:counter(s);font-family:var(--display);font-weight:800;font-size:16px;width:28px;height:28px;border-radius:8px;background:var(--surface-2);display:grid;place-items:center;flex:none}
+.row{display:flex;flex-wrap:wrap;gap:10px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px;padding:14px 20px;border-radius:999px;background:var(--surface-2);transition:transform .12s ease, background .15s}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.dark{background:var(--fg);color:var(--bg)}
+.btn.block{width:100%}
+.btn.danger{color:var(--down)}
+.btn svg{width:20px;height:20px}
+
+/* bottom bar */
+.dock{position:fixed;left:0;right:0;bottom:0;z-index:20;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:calc(14px + env(safe-area-inset-bottom,0px));padding-top:14px;background:linear-gradient(to top,var(--bg) 55%,transparent);pointer-events:none}
+.dock-inner{max-width:560px;margin:0 auto;display:flex;align-items:center;gap:10px;pointer-events:auto}
+.tabs{flex:1;display:flex;background:var(--surface);border-radius:999px;padding:5px;box-shadow:var(--shadow)}
+.tabs button{flex:1;padding:11px 0;border-radius:999px;font-weight:600;font-size:15px;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:7px}
+.tabs button svg{width:18px;height:18px}
+.tabs button[aria-selected="true"]{background:var(--surface-2);color:var(--fg)}
+.snap{width:60px;height:60px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;box-shadow:var(--shadow);flex:none}
+.snap svg{width:26px;height:26px}
+
+/* sheet */
+.sheet-wrap{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.scrim{position:absolute;inset:0;background:var(--scrim);animation:fade .2s ease}
+.sheet{position:relative;width:100%;max-width:560px;max-height:94%;overflow:auto;overscroll-behavior:contain;background:var(--bg);border-radius:26px 26px 0 0;padding:10px max(18px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(18px,env(safe-area-inset-left,0px));animation:rise .28s cubic-bezier(.2,.8,.2,1)}
+.grabber{width:42px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
+@keyframes rise{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+@keyframes fade{from{opacity:0}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.sheet-head{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.sheet-head .thumb{width:54px;height:54px;border-radius:13px}
+.sheet-head .thumb .ph{font-size:20px}
+.sheet-head .thumb .ph-lines{display:none}
+.sheet-title{flex:1;min-width:0}
+.sheet-title h3{margin:0;font-weight:700;font-size:20px;line-height:1.15;overflow-wrap:anywhere}
+.sheet-title p{margin:2px 0 0;font-size:14px;color:var(--muted)}
+.icon-btn{width:40px;height:40px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;flex:none}
+.icon-btn svg{width:18px;height:18px}
+
+.coach{display:grid;gap:6px;background:var(--surface);border-radius:var(--r-md);padding:14px 16px;margin-bottom:14px;box-shadow:var(--shadow)}
+.coach p{margin:0;font-size:15px}
+.coach .why{color:var(--muted);font-size:14px}
+
+/* weight dial */
+.dial{background:var(--surface);border-radius:var(--r-lg);padding:18px 14px 16px;box-shadow:var(--shadow);display:grid;gap:14px}
+.dial-row{display:grid;grid-template-columns:64px 1fr 64px;align-items:center;gap:8px}
+.step{width:64px;height:64px;border-radius:50%;background:var(--surface-2);display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:30px;line-height:1}
+.step:active{transform:scale(.94)}
+.dial-center{display:flex;align-items:center;justify-content:center;gap:12px;min-width:0}
+.weight-input{width:100%;max-width:170px;border:0;background:transparent;text-align:center;font-family:var(--display);font-weight:800;font-size:76px;line-height:1;padding:0;font-variant-numeric:tabular-nums;-moz-appearance:textfield;appearance:textfield}
+.weight-input::-webkit-outer-spin-button,.weight-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.dial-unit{font-family:var(--display);font-weight:700;font-size:20px;color:var(--muted);text-transform:uppercase;align-self:flex-end;padding-bottom:12px;margin-left:-6px}
+.stack{display:grid;gap:2px;width:22px;flex:none}
+.stack i{height:5px;border-radius:2px;background:var(--surface-2);display:block}
+.stack i.on{background:var(--fg)}
+.stack i.pin{background:var(--accent);height:5px;box-shadow:0 0 0 2px var(--accent)}
+.quick{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
+.chip{padding:8px 14px;border-radius:999px;background:var(--surface-2);font-weight:600;font-size:14px;color:var(--fg);display:inline-flex;gap:6px;align-items:baseline}
+.chip small{color:var(--muted);font-weight:500}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.chip[aria-pressed="true"] small{color:var(--bg);opacity:.7}
+
+.field{display:grid;gap:8px;margin-top:18px}
+.field-h{display:flex;justify-content:space-between;align-items:baseline}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}
+.seg button{padding:12px 0;border-radius:var(--r-sm);background:var(--surface);font-family:var(--display);font-weight:700;font-size:22px;box-shadow:var(--shadow)}
+.seg button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.stepper{display:grid;grid-template-columns:52px 1fr 52px;align-items:center;background:var(--surface);border-radius:var(--r-md);padding:6px;box-shadow:var(--shadow)}
+.stepper button{height:46px;border-radius:var(--r-sm);background:var(--surface-2);font-family:var(--display);font-weight:700;font-size:24px}
+.stepper output{text-align:center;font-family:var(--display);font-weight:800;font-size:30px;font-variant-numeric:tabular-nums}
+.stepper output small{font-size:15px;color:var(--muted);font-weight:600;margin-left:4px}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.effort{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.effort button{background:var(--surface);border-radius:var(--r-md);padding:10px 4px 9px;display:grid;justify-items:center;gap:6px;box-shadow:var(--shadow)}
+.effort b{font-weight:700;font-size:14.5px}
+.effort small{font-size:12px;color:var(--muted);line-height:1.15;text-align:center}
+.meter{display:flex;gap:2px;align-items:flex-end;height:18px}
+.meter i{width:5px;border-radius:2px;background:var(--line);display:block}
+.effort button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
+.effort button[aria-pressed="true"] small{color:var(--bg);opacity:.7}
+.effort button[aria-pressed="true"] .meter i.on{background:var(--accent)}
+.meter i.on{background:var(--fg)}
+.log-cta{margin-top:22px}
+.log-cta .btn{padding:18px 20px;font-size:18px}
+
+/* detail */
+.chart-box{background:var(--surface);border-radius:var(--r-lg);padding:16px 14px 10px;box-shadow:var(--shadow)}
+.chart-box svg{width:100%;height:auto;display:block}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0 4px}
+.kpi{background:var(--surface);border-radius:var(--r-md);padding:12px;box-shadow:var(--shadow)}
+.kpi b{display:block;font-family:var(--display);font-weight:800;font-size:26px;line-height:1;font-variant-numeric:tabular-nums}
+.kpi small{color:var(--muted);font-size:13px}
+.hist{display:grid;gap:0;background:var(--surface);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden}
+.hist-row{display:grid;grid-template-columns:1fr auto auto;gap:12px;align-items:center;padding:12px 14px;border-top:1px solid var(--line)}
+.hist-row:first-child{border-top:0}
+.hist-row .d{font-size:14px;color:var(--muted)}
+.hist-row .v{font-family:var(--display);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.hist-row .del{font-size:13px;font-weight:600;color:var(--faint);padding:6px 8px;border-radius:8px}
+.hist-row .del.armed{color:var(--down);background:var(--down-bg)}
+.eff-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.settings{display:grid;gap:4px}
+.text-input{width:100%;padding:14px 16px;border-radius:var(--r-md);border:1px solid var(--line);background:var(--surface);font-size:17px}
+.chips-wrap{display:flex;flex-wrap:wrap;gap:8px}
+
+/* add */
+.photo-drop{display:grid;place-items:center;aspect-ratio:4/3;max-width:100%;border-radius:var(--r-lg);background:var(--surface);border:2px dashed var(--line);cursor:pointer;overflow:hidden;position:relative;text-align:center}
+.photo-drop img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.photo-drop .cta{display:grid;justify-items:center;gap:10px;padding:20px}
+.photo-drop .cam{width:64px;height:64px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center}
+.photo-drop .cam svg{width:28px;height:28px}
+.photo-drop b{font-size:18px}
+.photo-drop small{color:var(--muted)}
+.photo-drop.has{border-style:solid;border-color:transparent}
+.retake{position:absolute;right:12px;bottom:12px;background:var(--scrim);color:#fff;padding:8px 14px;border-radius:999px;font-weight:600;font-size:14px;backdrop-filter:blur(6px)}
+.ai-note{font-size:14px;color:var(--muted);min-height:1.4em}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* guide */
+.guide{display:grid;gap:12px}
+.g-hero{background:var(--fg);color:var(--bg);border-radius:var(--r-lg);padding:22px 20px;display:grid;gap:10px}
+.g-hero h2{margin:0;font-family:var(--display);font-weight:800;font-size:34px;line-height:.95;text-transform:uppercase;text-wrap:balance}
+.g-hero p{margin:0;opacity:.8;max-width:46ch}
+.ladder{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:6px}
+.rung{background:color-mix(in srgb,var(--bg) 10%,transparent);border-radius:12px;padding:10px 8px;display:grid;gap:2px}
+.rung b{font-family:var(--display);font-weight:800;font-size:22px;line-height:1}
+.rung small{font-size:12px;opacity:.75}
+.rung.go{background:var(--accent);color:var(--accent-ink)}
+.g-card{background:var(--surface);border-radius:var(--r-lg);padding:18px;box-shadow:var(--shadow);display:grid;gap:8px}
+.g-card h3{margin:0;font-weight:700;font-size:18px}
+.g-card p{margin:0;color:var(--muted);font-size:15.5px;max-width:62ch}
+.g-card ul{margin:0;padding-left:18px;color:var(--muted);font-size:15.5px;display:grid;gap:4px}
+.g-card strong{color:var(--fg)}
+.g-table{width:100%;border-collapse:collapse;font-size:15px}
+.g-table td{padding:8px 0;border-top:1px solid var(--line)}
+.g-table td:last-child{text-align:right;font-family:var(--display);font-weight:700;font-size:18px}
+.g-table tr:first-child td{border-top:0}
+
+/* toast */
+.toast{position:fixed;left:50%;bottom:calc(98px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--fg);color:var(--bg);border-radius:999px;padding:12px 10px 12px 18px;display:flex;gap:14px;align-items:center;font-weight:600;font-size:15px;box-shadow:var(--shadow);max-width:calc(100% - 32px);animation:rise .25s ease}
+.toast button{color:var(--accent);font-weight:700;padding:4px 10px}
+.toast:not(:has(button)){padding-right:18px}
+.sync{font-size:12.5px;color:var(--faint);text-align:center;margin-top:28px}
+
+@media (max-width:380px){
+  .card{grid-template-columns:64px 1fr auto;gap:10px}
+  .thumb{width:64px;height:64px}
+  .card-next .w{font-size:28px}
+  .weight-input{font-size:64px}
+  .step{width:54px;height:54px}
+  .dial-row{grid-template-columns:54px 1fr 54px}
+  .effort small{font-size:11px}
+}
+</style>
+
+<div class="app" id="app"></div>
+<div class="dock">
+  <div class="dock-inner">
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-machines" aria-selected="true" data-tab="machines">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/></svg>Machines</button>
+      <button role="tab" id="tab-guide" aria-selected="false" data-tab="guide">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2Z"/><path d="M9 8h6M9 12h4"/></svg>Guide</button>
+    </div>
+    <button class="snap" id="snap-btn" aria-label="Add a machine">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+    </button>
+  </div>
+</div>
+<div id="sheet-root"></div>
+<div id="toast-root" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+/* ---------- helpers ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = n => { const v = Math.round(n * 100) / 100; return Number.isInteger(v) ? String(v) : String(v); };
+const fmtK = n => n >= 10000 ? (Math.round(n / 100) / 10) + 'k' : Math.round(n).toLocaleString();
+const DAY = 86400000;
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+const lsGet = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+const lsSet = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+const ago = t => {
+  const d = Math.floor((startOfDay(Date.now()) - startOfDay(t)) / DAY);
+  if (d <= 0) return 'today'; if (d === 1) return 'yesterday'; if (d < 7) return d + ' days ago';
+  if (d < 14) return '1 week ago'; if (d < 60) return Math.floor(d / 7) + ' weeks ago';
+  return Math.floor(d / 30) + ' months ago';
+};
+const startOfDay = t => { const d = new Date(t); d.setHours(0,0,0,0); return d.getTime(); };
+const dateLabel = t => new Date(t).toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
+
+const EFFORT = [
+  { v:1, label:'Easy',    sub:'4+ reps left' },
+  { v:2, label:'Solid',   sub:'2–3 left' },
+  { v:3, label:'Hard',    sub:'1 left' },
+  { v:4, label:'All out', sub:'0 left' },
+];
+const EFFORT_COLOR = ['', 'var(--up)', 'var(--hold)', 'var(--accent)', 'var(--down)'];
+const NAMES = ['Leg Press','Chest Press','Lat Pulldown','Seated Row','Shoulder Press','Leg Extension','Leg Curl','Pec Fly','Rear Delt Fly','Hip Abductor','Hip Adductor','Calf Raise','Bicep Curl','Tricep Pushdown','Smith Squat','Hack Squat'];
+const RANGES = [ { k:'strength', label:'Strength', min:4, max:6 }, { k:'build', label:'Muscle', min:8, max:12 }, { k:'endure', label:'Endurance', min:12, max:15 } ];
+
+const ICON = {
+  up: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 10V2M2.5 5.5 6 2l3.5 3.5"/></svg>',
+  down: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2v8M2.5 6.5 6 10l3.5-3.5"/></svg>',
+  hold: '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M2 6h8"/></svg>',
+  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
+  chart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19h16M6 15l4-5 3 3 5-7"/></svg>',
+  cam: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+};
+
+/* ---------- state + storage ---------- */
+const LS = 'plateup.machines.v1';
+const state = {
+  machines: lsGet(LS, []),
+  unit: lsGet('plateup.unit', 'kg'),
+  tab: 'machines',
+  cloud: null,       // collection ref when signed in
+  sample: null,
+};
+const chains = {};
+function saveLocal() { lsSet(LS, state.machines); }
+function persist(m) {
+  saveLocal();
+  if (!state.cloud) return;
+  const body = JSON.parse(JSON.stringify(m)); delete body.id;
+  chains[m.id] = (chains[m.id] || Promise.resolve())
+    .then(() => state.cloud.doc(m.id).set(body))
+    .catch(() => toast('Saved on this phone. Your account sync will retry next time.'));
+}
+function removeMachine(id) {
+  state.machines = state.machines.filter(m => m.id !== id);
+  saveLocal();
+  if (state.cloud) chains[id] = (chains[id] || Promise.resolve()).then(() => state.cloud.doc(id).delete()).catch(() => {});
+}
+const byId = id => state.machines.find(m => m.id === id);
+
+async function connect() {
+  const c = window.claude;
+  if (!c?.use) return;
+  try {
+    const [db, user] = await Promise.all([c.use('db'), c.use('user')]);
+    if (db && user) {
+      const id = await user.id();
+      if (id) {
+        const col = db.collection('data/users/' + id);
+        let migrated = false;
+        col.onSnapshot(snap => {
+          if (!migrated && !snap.metadata.fromCache) {
+            migrated = true;
+            if (snap.empty && state.machines.length) {
+              state.cloud = col;
+              state.machines.forEach(persist);
+              render();
+              return;
+            }
+          }
+          if (snap.metadata.fromCache && snap.empty) return;
+          state.cloud = col;
+          state.machines = snap.docs.map(d => ({ ...JSON.parse(JSON.stringify(d.data())), id: d.id }));
+          saveLocal();
+          render();
+          refreshSheet();
+        }, () => { state.cloud = null; render(); });
+      }
+    }
+  } catch {}
+  try {
+    const s = await c.use('sample');
+    if (s) { const lim = await s.limits?.(); if (!lim || lim.images) state.sample = s; }
+  } catch {}
+}
+
+/* ---------- progression engine ---------- */
+function roundTo(w, inc) { const step = inc >= 2.5 ? 0.5 : 0.25; return Math.max(0, Math.round(w / step) * step); }
+function suggest(m) {
+  const s = m.sessions || [];
+  const last = s[s.length - 1];
+  const inc = m.inc, u = m.unit;
+  if (!last) return { status:'new', w:m.start, reps:m.repMin, sets:m.sets || 3,
+    title:'First session', msg:`Start at ${fmt(m.start)} ${u}. Pick a weight you can do for ${m.repMin}–${m.repMax} clean reps.` };
+  // how long at this weight
+  let i = s.length - 1; while (i > 0 && s[i - 1].w === last.w) i--;
+  const streak = s.length - i, days = Math.floor((Date.now() - s[i].t) / DAY);
+  const sets = last.sets;
+  const top = m.repMax, bot = m.repMin;
+  if (last.effort === 4 && last.reps < bot)
+    return { status:'down', w:roundTo(last.w - inc, inc), reps:bot, sets,
+      title:`Drop to ${fmt(roundTo(last.w - inc, inc))} ${u}`, msg:`You went all out and fell short of ${bot} reps. Drop ${fmt(inc)} ${u}, rebuild clean reps, then climb back.` };
+  if (last.reps >= top && last.effort <= 3)
+    return { status:'up', w:roundTo(last.w + inc, inc), reps:bot, sets,
+      title:`Go up to ${fmt(roundTo(last.w + inc, inc))} ${u}`, msg:`You hit ${top} reps, the top of your range. Add ${fmt(inc)} ${u} and start again at ${bot} reps.` };
+  if (last.effort === 1 && last.reps >= bot)
+    return { status:'up', w:roundTo(last.w + inc, inc), reps:Math.max(bot, last.reps - 2), sets,
+      title:`Go up to ${fmt(roundTo(last.w + inc, inc))} ${u}`, msg:`That felt easy with 4+ reps left. You're ready for ${fmt(inc)} ${u} more.` };
+  if (days >= 14 && last.effort <= 2 && last.reps >= bot)
+    return { status:'up', w:roundTo(last.w + inc, inc), reps:bot, sets,
+      title:`Time to go up`, msg:`${days} days at ${fmt(last.w)} ${u} and it still feels solid. Add ${fmt(inc)} ${u} to keep progressing.` };
+  const reset = Math.max(inc, Math.round(last.w * 0.9 / inc) * inc);
+  if (streak >= 4 && last.effort >= 3 && last.reps < top && last.reps <= s[i].reps + 1 && reset < last.w)
+    return { status:'down', w:reset, reps:top, sets,
+      title:`Reset to ${fmt(reset)} ${u}`, msg:`${streak} sessions stuck at ${fmt(last.w)} ${u}. Drop about 10%, go for ${top} reps, and build back up. Stalls break this way.` };
+  if (last.reps < bot)
+    return { status:'hold', w:last.w, reps:bot, sets,
+      title:`Stay at ${fmt(last.w)} ${u}`, msg:`Aim for ${bot} reps per set. Once you hit ${top}, the weight goes up.` };
+  const next = Math.min(last.reps + 1, top);
+  return { status:'hold', w:last.w, reps:next, sets,
+    title:`Stay at ${fmt(last.w)} ${u}, aim for ${next}`, msg:`Add one rep before adding weight. At ${top} reps per set you go up ${fmt(inc)} ${u}.` };
+}
+const STATUS = { up:['up','Go up'], hold:['hold','Hold'], down:['down','Drop'], new:['new','New'] };
+const pill = st => { const [c, t] = STATUS[st]; return `<span class="pill ${c}">${ICON[c] || ''}${t}</span>`; };
+
+/* ---------- pieces ---------- */
+function thumb(m) {
+  if (m.photo) return `<div class="thumb"><img src="${m.photo}" alt=""></div>`;
+  const ini = m.name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  return `<div class="thumb" aria-hidden="true"><span class="ph">${esc(ini)}</span><span class="ph-lines"><i></i><i></i><i></i></span></div>`;
+}
+function stackMeter(m, w) {
+  const all = (m.sessions || []).map(s => s.w).concat([m.start, w]);
+  const max = Math.max(...all) * 1.35 || 1;
+  const n = 14, lvl = Math.max(1, Math.min(n, Math.round(w / max * n)));
+  let h = '';
+  for (let i = n; i >= 1; i--) h += `<i class="${i === lvl ? 'pin' : i < lvl ? 'on' : ''}"></i>`;
+  return `<div class="stack" aria-hidden="true" title="Pin position on the weight stack">${h}</div>`;
+}
+function meter(v) { let h = ''; for (let i = 1; i <= 4; i++) h += `<i class="${i <= v ? 'on' : ''}" style="height:${4 + i * 3.5}px"></i>`; return `<span class="meter">${h}</span>`; }
+
+/* ---------- render: home ---------- */
+function weekStats() {
+  const now = new Date(); const dow = (now.getDay() + 6) % 7; // Mon=0
+  const mon = startOfDay(Date.now()) - dow * DAY;
+  const days = Array.from({ length:7 }, (_, i) => ({ t: mon + i * DAY, on:false, today: i === dow }));
+  let sessions = 0, volume = 0; const sessionDays = new Set();
+  state.machines.forEach(m => (m.sessions || []).forEach(s => {
+    if (s.t >= mon) { sessions++; volume += s.w * s.reps * s.sets; const k = startOfDay(s.t); sessionDays.add(k); }
+  }));
+  days.forEach(d => d.on = sessionDays.has(d.t));
+  const ready = state.machines.filter(m => suggest(m).status === 'up').length;
+  return { days, sessions, volume, ready, trainDays: sessionDays.size };
+}
+function renderHome() {
+  const ms = state.machines;
+  const w = weekStats();
+  const unit = ms[0]?.unit || state.unit;
+  const L = ['M','T','W','T','F','S','S'];
+  let h = `
+  <section class="week" aria-label="This week">
+    <div class="week-head"><span class="eyebrow">This week</span><span class="eyebrow" style="color:var(--fg)">${w.trainDays} ${w.trainDays === 1 ? 'day' : 'days'} trained</span></div>
+    <div class="week-days">${w.days.map((d, i) => `<div class="day ${d.on ? 'on' : ''} ${d.today ? 'today' : ''}"><span>${L[i]}</span><i></i></div>`).join('')}</div>
+    <div class="stats">
+      <div class="stat"><b>${w.sessions}</b><small>machines logged</small></div>
+      <div class="stat"><b>${fmtK(w.volume)}</b><small>${esc(unit)} moved</small></div>
+      <div class="stat"><b style="color:${w.ready ? 'var(--up)' : 'inherit'}">${w.ready}</b><small>ready to go up</small></div>
+    </div>
+  </section>`;
+  if (!ms.length) {
+    h += `
+    <div class="section-h"><h2>Your machines</h2></div>
+    <section class="empty">
+      <span class="eyebrow">Progressive overload, minus the notes app</span>
+      <h3>Snap the machine. Log the weight. Get stronger.</h3>
+      <ol class="empty-steps">
+        <li>Take a photo of the machine so you know it next time</li>
+        <li>Each set, tap the suggested weight and how hard it felt</li>
+        <li>Plate Up tells you when to add weight and how much</li>
+      </ol>
+      <div class="row">
+        <button class="btn primary" data-act="add">${ICON.cam}Add first machine</button>
+        <button class="btn" data-act="examples">See an example</button>
+      </div>
+    </section>`;
+  } else {
+    const order = { up:0, down:1, hold:2, new:3 };
+    const sorted = ms.slice().sort((a, b) => {
+      const la = a.sessions?.at(-1)?.t || a.createdAt, lb = b.sessions?.at(-1)?.t || b.createdAt;
+      return (order[suggest(a).status] - order[suggest(b).status]) || (lb - la);
+    });
+    h += `<div class="section-h"><h2>Your machines</h2><button class="link" data-act="add">+ Add</button></div>`;
+    if (ms.some(m => m.example)) h += `<div class="examples-note"><span>These are example machines with made-up history.</span><button data-act="clear-examples">Remove examples</button></div>`;
+    h += `<div class="list">` + sorted.map(m => {
+      const s = suggest(m), last = m.sessions?.at(-1);
+      const lastTxt = last ? `${fmt(last.w)} ${m.unit} · ${last.sets}×${last.reps} · ${ago(last.t)}` : 'No sessions yet';
+      return `<button class="card" data-open="${m.id}">
+        ${thumb(m)}
+        <span class="card-main"><span class="card-name">${esc(m.name)}</span><span class="card-last">${esc(lastTxt)}</span>${pill(s.status)}</span>
+        <span class="card-next"><span class="eyebrow" style="font-size:11px">Next</span><span class="w">${fmt(s.w)}<small>${esc(m.unit)}</small></span></span>
+      </button>`;
+    }).join('') + `</div>`;
+  }
+  h += `<p class="sync">${state.cloud ? 'Saved to your Claude account' : 'Saved on this device'}</p>`;
+  return h;
+}
+
+/* ---------- render: guide ---------- */
+function renderGuide() {
+  const u = state.unit;
+  const big = u === 'kg' ? '5–10 kg' : '10–20 lb', small = u === 'kg' ? '2.5–5 kg' : '5–10 lb', tiny = u === 'kg' ? '1–2.5 kg' : '2.5–5 lb';
+  return `<div class="guide">
+    <section class="g-hero">
+      <span class="eyebrow" style="color:inherit;opacity:.7">How Plate Up decides</span>
+      <h2>Reps first. Then weight.</h2>
+      <p>This is called double progression. Pick a rep range, say 8–12. Keep the same weight and add reps each session. When every set reaches the top of the range, add weight and drop back to the bottom.</p>
+      <div class="ladder">
+        <div class="rung"><b>8</b><small>40 ${u === 'kg' ? 'kg' : 'lb'}</small></div>
+        <div class="rung"><b>10</b><small>40 ${u === 'kg' ? 'kg' : 'lb'}</small></div>
+        <div class="rung"><b>12</b><small>40 ${u === 'kg' ? 'kg' : 'lb'}</small></div>
+        <div class="rung go"><b>8</b><small>45 ${u === 'kg' ? 'kg' : 'lb'}</small></div>
+      </div>
+    </section>
+    <section class="g-card"><h3>When to add weight</h3>
+      <ul>
+        <li><strong>You hit the top of your rep range</strong> on all sets with at least 1 rep left in the tank.</li>
+        <li><strong>It felt easy</strong>, with 4 or more reps left.</li>
+        <li><strong>Two weeks at the same weight</strong> and it still feels solid. Most people stall by staying comfortable, not by lifting too much.</li>
+      </ul></section>
+    <section class="g-card"><h3>How much to add</h3>
+      <table class="g-table"><tbody>
+        <tr><td>Big legs and back machines<br><small style="color:var(--muted)">Leg press, hack squat, row</small></td><td>${big}</td></tr>
+        <tr><td>Chest, back, shoulder presses</td><td>${small}</td></tr>
+        <tr><td>Small muscles<br><small style="color:var(--muted)">Curls, raises, extensions</small></td><td>${tiny}</td></tr>
+      </tbody></table>
+      <p>Machines jump one plate at a time. If the jump is too big, stay and earn an extra rep or two first.</p></section>
+    <section class="g-card"><h3>Sets and reps</h3>
+      <ul>
+        <li><strong>3 working sets</strong> per machine is the sweet spot for most people. 2 works when you are short on time.</li>
+        <li><strong>8–12 reps</strong> builds muscle. 4–6 builds strength. 12–15 for endurance and small muscles.</li>
+        <li>Rest 1.5–3 minutes between sets so the next one counts.</li>
+      </ul></section>
+    <section class="g-card"><h3>Reading your effort</h3>
+      <p>Effort is measured in reps left in the tank (RIR). Tap the one that matches your last set.</p>
+      <table class="g-table"><tbody>
+        ${EFFORT.map(e => `<tr><td><span class="eff-dot" style="background:${EFFORT_COLOR[e.v]}"></span>${e.label}</td><td style="font-family:var(--body);font-weight:500;font-size:15px;color:var(--muted)">${e.sub}</td></tr>`).join('')}
+      </tbody></table>
+      <p>Most sets should land on <strong>Solid</strong> or <strong>Hard</strong>. All out is fine on the last set, not every set.</p></section>
+    <section class="g-card"><h3>When you stall</h3>
+      <p>Stuck at the same weight for 4 sessions and every set is a grind? Drop about 10%, push the reps up, and climb back. Plate Up suggests this for you. Sleep, food and a deload week every 6–8 weeks also matter.</p></section>
+    <p class="sync">General training guidance, not medical advice. Stop if something hurts.</p>
+  </div>`;
+}
+
+function render() {
+  const app = $('#app');
+  const head = `<header class="top">
+    <div class="brand"><span class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-ink)" stroke-width="2.6" stroke-linecap="round"><path d="M6 6v12M18 6v12M2.5 9.5v5M21.5 9.5v5M6 12h12"/></svg></span><span class="brand-name">Plate Up</span></div>
+    <div class="unit-toggle" role="group" aria-label="Units"><button data-unit="kg" aria-pressed="${state.unit === 'kg'}">kg</button><button data-unit="lb" aria-pressed="${state.unit === 'lb'}">lb</button></div>
+  </header>`;
+  app.innerHTML = head + (state.tab === 'guide' ? renderGuide() : renderHome());
+  document.querySelectorAll('.tabs [data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === state.tab)));
+}
+
+/* ---------- sheets ---------- */
+let sheet = null; // { kind, id, draft }
+function openSheet(kind, opts = {}) { sheet = { kind, ...opts }; drawSheet(true); }
+function closeSheet() { sheet = null; $('#sheet-root').innerHTML = ''; document.body.style.overflow = ''; }
+function refreshSheet() { if (sheet && sheet.kind !== 'add') { if (!byId(sheet.id)) return closeSheet(); drawSheet(false); } }
+function drawSheet(fresh) {
+  const root = $('#sheet-root');
+  const scroll = root.querySelector('.sheet')?.scrollTop || 0;
+  const inner = sheet.kind === 'log' ? logSheet() : sheet.kind === 'detail' ? detailSheet() : addSheet();
+  root.innerHTML = `<div class="sheet-wrap" role="dialog" aria-modal="true"><div class="scrim" data-act="close"></div><div class="sheet" style="${fresh ? '' : 'animation:none'}"><div class="grabber"></div>${inner}</div></div>`;
+  const s = root.querySelector('.sheet'); if (!fresh) s.scrollTop = scroll;
+  root.querySelector('.scrim').style.animation = fresh ? '' : 'none';
+  document.body.style.overflow = 'hidden';
+  if (sheet.kind === 'add') wireAdd();
+  if (sheet.kind === 'log') wireLog();
+}
+
+/* log */
+function logSheet() {
+  const m = byId(sheet.id); const s = suggest(m);
+  if (!sheet.draft) sheet.draft = { w:s.w, reps:s.reps, sets:s.sets || 3, effort:2 };
+  const d = sheet.draft, last = m.sessions?.at(-1);
+  const quick = [];
+  if (last) quick.push({ w:last.w, label:'Last', });
+  if (!last || s.w !== last.w) quick.push({ w:s.w, label:'Suggested' });
+  return `
+  <div class="sheet-head">${thumb(m)}<div class="sheet-title"><h3>${esc(m.name)}</h3><p>${last ? `Last time ${fmt(last.w)} ${m.unit} · ${last.sets}×${last.reps} · ${ago(last.t)}` : `${m.repMin}–${m.repMax} reps · +${fmt(m.inc)} ${m.unit} steps`}</p></div>
+    <button class="icon-btn" data-act="detail" aria-label="History and settings">${ICON.chart}</button>
+    <button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button></div>
+  <div class="coach">${pill(s.status)}<p><strong>${esc(s.title)}</strong></p><p class="why">${esc(s.msg)}</p></div>
+  <div class="dial">
+    <div class="dial-row">
+      <button class="step" data-w="-1" aria-label="Minus ${fmt(m.inc)} ${m.unit}">−</button>
+      <div class="dial-center">${stackMeter(m, d.w)}<label class="sr" for="w-input">Weight in ${m.unit}</label><input id="w-input" class="weight-input" type="number" inputmode="decimal" step="any" min="0" value="${fmt(d.w)}"><span class="dial-unit">${esc(m.unit)}</span></div>
+      <button class="step" data-w="1" aria-label="Plus ${fmt(m.inc)} ${m.unit}">+</button>
+    </div>
+    <div class="quick">${quick.map(q => `<button class="chip" data-setw="${q.w}" aria-pressed="${q.w === d.w}"><small>${q.label}</small>${fmt(q.w)}</button>`).join('')}
+      <button class="chip" data-w="2"><small>Jump</small>+${fmt(m.inc * 2)}</button></div>
+  </div>
+  <div class="pair">
+    <div class="field"><div class="field-h"><span class="eyebrow">Sets</span></div>
+      <div class="stepper"><button data-sets="-1" aria-label="Fewer sets">−</button><output id="sets-out">${d.sets}</output><button data-sets="1" aria-label="More sets">+</button></div></div>
+    <div class="field"><div class="field-h"><span class="eyebrow">Reps</span><span class="eyebrow" style="font-size:11px">Goal ${m.repMin}–${m.repMax}</span></div>
+      <div class="stepper"><button data-reps="-1" aria-label="Fewer reps">−</button><output id="reps-out">${d.reps}</output><button data-reps="1" aria-label="More reps">+</button></div></div>
+  </div>
+  <div class="field"><div class="field-h"><span class="eyebrow">How hard was the last set?</span></div>
+    <div class="effort">${EFFORT.map(e => `<button data-eff="${e.v}" aria-pressed="${d.effort === e.v}">${meter(e.v)}<b>${e.label}</b><small>${e.sub}</small></button>`).join('')}</div></div>
+  <div class="log-cta"><button class="btn primary block" data-act="log" id="log-btn">Log ${fmt(d.w)} ${esc(m.unit)} · ${d.sets}×${d.reps}</button></div>`;
+}
+function wireLog() {
+  const inp = $('#w-input');
+  inp?.addEventListener('input', () => { const v = parseFloat(inp.value); if (!isNaN(v) && v >= 0) { sheet.draft.w = v; updateLogBtn(); } });
+  inp?.addEventListener('focus', () => inp.select());
+}
+function updateLogBtn() {
+  const m = byId(sheet.id), d = sheet.draft;
+  const b = $('#log-btn'); if (b) b.textContent = `Log ${fmt(d.w)} ${m.unit} · ${d.sets}×${d.reps}`;
+  document.querySelectorAll('[data-setw]').forEach(c => c.setAttribute('aria-pressed', String(parseFloat(c.dataset.setw) === d.w)));
+  const st = document.querySelector('.dial .stack'); if (st) st.outerHTML = stackMeter(m, d.w);
+}
+
+/* detail */
+function chartSvg(m) {
+  const s = m.sessions || [];
+  if (s.length < 2) return `<p style="margin:6px 4px 10px;color:var(--muted);font-size:15px">Your progress chart appears after two sessions.</p>`;
+  const W = 340, H = 150, pl = 34, pr = 12, pt = 14, pb = 26;
+  const ws = s.map(x => x.w); let lo = Math.min(...ws), hi = Math.max(...ws);
+  if (hi === lo) { hi += m.inc; lo = Math.max(0, lo - m.inc); }
+  const pad = (hi - lo) * 0.15; lo = Math.max(0, lo - pad); hi += pad;
+  const t0 = s[0].t, t1 = s.at(-1).t || t0 + 1;
+  const X = t => pl + (t1 === t0 ? 0.5 : (t - t0) / (t1 - t0)) * (W - pl - pr);
+  const Y = w => pt + (1 - (w - lo) / (hi - lo)) * (H - pt - pb);
+  const pts = s.map(x => [X(x.t), Y(x.w)]);
+  // step line: weight holds until changed
+  let d = `M${pts[0][0]},${pts[0][1]}`; for (let i = 1; i < pts.length; i++) d += ` H${pts[i][0]} V${pts[i][1]}`;
+  const area = d + ` V${H - pb} H${pts[0][0]} Z`;
+  const ticks = [lo + (hi - lo) * 0.15 / 1.3, hi - (hi - lo) * 0.15 / 1.3].map(v => roundTo(v, m.inc));
+  const uniq = [...new Set(ticks)];
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Weight over time for ${esc(m.name)}">
+    ${uniq.map(v => `<line x1="${pl}" x2="${W - pr}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-dasharray="3 4"/><text x="${pl - 6}" y="${Y(v) + 4}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="var(--body)">${fmt(v)}</text>`).join('')}
+    <path d="${area}" fill="var(--accent)" opacity=".16"/>
+    <path d="${d}" fill="none" stroke="var(--fg)" stroke-width="2.2" stroke-linejoin="round"/>
+    ${pts.map((p, i) => `<circle cx="${p[0]}" cy="${p[1]}" r="${i === pts.length - 1 ? 5.5 : 3.6}" fill="${EFFORT_COLOR[s[i].effort]}" stroke="var(--surface)" stroke-width="1.6"/>`).join('')}
+    <text x="${pl}" y="${H - 6}" font-size="11" fill="var(--muted)" font-family="var(--body)">${new Date(t0).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</text>
+    <text x="${W - pr}" y="${H - 6}" text-anchor="end" font-size="11" fill="var(--muted)" font-family="var(--body)">${new Date(t1).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</text>
+  </svg>`;
+}
+function detailSheet() {
+  const m = byId(sheet.id), s = m.sessions || [];
+  const best = s.length ? Math.max(...s.map(x => x.w)) : m.start;
+  const gain = s.length ? s.at(-1).w - s[0].w : 0;
+  const pct = s.length && s[0].w ? Math.round(gain / s[0].w * 100) : 0;
+  const arm = sheet.arm || '';
+  return `
+  <div class="sheet-head">${thumb(m)}<div class="sheet-title"><h3>${esc(m.name)}</h3><p>${s.length} session${s.length === 1 ? '' : 's'} since ${new Date(m.createdAt).toLocaleDateString(undefined,{month:'short',day:'numeric'})}</p></div>
+    <button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button></div>
+  <div class="chart-box">${chartSvg(m)}
+    <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);padding:4px 4px 2px">${EFFORT.map(e => `<span><span class="eff-dot" style="background:${EFFORT_COLOR[e.v]}"></span>${e.label}</span>`).join('')}</div></div>
+  <div class="kpis">
+    <div class="kpi"><b>${fmt(best)}</b><small>best ${esc(m.unit)}</small></div>
+    <div class="kpi"><b style="color:${gain > 0 ? 'var(--up)' : 'inherit'}">${gain > 0 ? '+' : ''}${fmt(gain)}</b><small>${esc(m.unit)} gained</small></div>
+    <div class="kpi"><b>${pct > 0 ? '+' : ''}${pct}%</b><small>stronger</small></div>
+  </div>
+  <div class="row" style="margin:14px 0 4px"><button class="btn primary block" data-act="to-log">Log a session</button></div>
+  ${s.length ? `<div class="section-h"><h2 style="font-size:18px">History</h2></div>
+  <div class="hist">${s.slice().reverse().map(x => `<div class="hist-row">
+      <span class="d"><span class="eff-dot" style="background:${EFFORT_COLOR[x.effort]}"></span>${dateLabel(x.t)} · ${EFFORT[x.effort - 1].label}</span>
+      <span class="v">${fmt(x.w)} ${esc(m.unit)} · ${x.sets}×${x.reps}</span>
+      <button class="del ${arm === x.id ? 'armed' : ''}" data-delsess="${x.id}">${arm === x.id ? 'Delete?' : 'Remove'}</button></div>`).join('')}</div>` : ''}
+  <div class="section-h"><h2 style="font-size:18px">Machine settings</h2></div>
+  <div class="settings">
+    <label class="eyebrow" for="name-edit">Name</label>
+    <input id="name-edit" class="text-input" value="${esc(m.name)}" maxlength="40" autocomplete="off">
+    <div class="field"><span class="eyebrow">Weight step</span><div class="chips-wrap">${incOptions(m.unit).map(v => `<button class="chip" data-inc="${v}" aria-pressed="${v === m.inc}">+${fmt(v)} ${m.unit}</button>`).join('')}</div></div>
+    <div class="field"><span class="eyebrow">Goal</span><div class="chips-wrap">${RANGES.map(r => `<button class="chip" data-range="${r.k}" aria-pressed="${m.repMin === r.min && m.repMax === r.max}"><small>${r.label}</small>${r.min}–${r.max} reps</button>`).join('')}</div></div>
+    <div class="field"><span class="eyebrow">Photo</span><label class="btn" for="rephoto" style="justify-self:start">${ICON.cam}${m.photo ? 'Retake photo' : 'Add photo'}</label><input id="rephoto" class="sr" type="file" accept="image/*" capture="environment"></div>
+    <div class="field"><button class="btn danger" data-act="del-machine" style="justify-self:start">${sheet.armMachine ? 'Tap again to delete this machine and its history' : 'Delete machine'}</button></div>
+  </div>`;
+}
+const incOptions = u => u === 'kg' ? [1, 2.5, 5, 10] : [2.5, 5, 10, 20];
+
+/* add */
+function addSheet() {
+  const d = sheet.draft ||= { photo:null, name:'', start: state.unit === 'kg' ? 20 : 40, inc: state.unit === 'kg' ? 5 : 10, range:'build', ai:'' };
+  return `
+  <div class="sheet-head"><div class="sheet-title"><h3>Add a machine</h3><p>Snap it so you recognise it next time.</p></div>
+    <button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button></div>
+  <label class="photo-drop ${d.photo ? 'has' : ''}" for="photo-in">
+    ${d.photo ? `<img src="${d.photo}" alt="Photo of the machine"><span class="retake">Retake</span>` :
+    `<span class="cta"><span class="cam">${ICON.cam}</span><b>Take a photo of the machine</b><small>Or choose one from your gallery</small></span>`}
+  </label>
+  <input id="photo-in" class="sr" type="file" accept="image/*" capture="environment">
+  <p class="ai-note" id="ai-note">${esc(d.ai)}</p>
+  <div class="field" style="margin-top:6px"><label class="eyebrow" for="name-in">Machine name</label>
+    <input id="name-in" class="text-input" placeholder="e.g. Leg Press" value="${esc(d.name)}" maxlength="40" autocomplete="off">
+    <div class="chips-wrap" id="name-chips">${NAMES.slice(0, 10).map(n => `<button class="chip" data-name="${esc(n)}" aria-pressed="${d.name === n}">${esc(n)}</button>`).join('')}</div></div>
+  <div class="pair">
+    <div class="field"><span class="eyebrow">Starting weight</span>
+      <div class="stepper"><button data-start="-1" aria-label="Less">−</button><output id="start-out">${fmt(d.start)}<small>${state.unit}</small></output><button data-start="1" aria-label="More">+</button></div></div>
+    <div class="field"><span class="eyebrow">Weight step</span>
+      <div class="stepper"><button data-incstep="-1" aria-label="Smaller step">−</button><output id="inc-out">+${fmt(d.inc)}<small>${state.unit}</small></output><button data-incstep="1" aria-label="Bigger step">+</button></div></div>
+  </div>
+  <div class="field"><span class="eyebrow">Goal</span><div class="seg">${RANGES.map(r => `<button data-addrange="${r.k}" aria-pressed="${d.range === r.k}" style="font-size:16px;padding:10px 0;display:grid;gap:0"><span>${r.min}–${r.max}</span><small style="font-family:var(--body);font-size:12px;font-weight:600;opacity:.7">${r.label}</small></button>`).join('')}</div></div>
+  <div class="log-cta"><button class="btn primary block" data-act="save-machine">Save machine</button></div>`;
+}
+function wireAdd() {
+  const n = $('#name-in');
+  n?.addEventListener('input', () => { sheet.draft.name = n.value; document.querySelectorAll('[data-name]').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.name === n.value))); });
+}
+async function compress(file) {
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image();
+    await new Promise((r, j) => { img.onload = r; img.onerror = j; img.src = url; });
+    const side = Math.min(img.naturalWidth, img.naturalHeight), S = 420;
+    const c = document.createElement('canvas'); c.width = c.height = S;
+    c.getContext('2d').drawImage(img, (img.naturalWidth - side) / 2, (img.naturalHeight - side) / 2, side, side, 0, 0, S, S);
+    const dataUrl = c.toDataURL('image/jpeg', 0.72);
+    const blob = await new Promise(r => c.toBlob(r, 'image/jpeg', 0.72));
+    return { dataUrl, blob };
+  } finally { URL.revokeObjectURL(url); }
+}
+async function identify(blob) {
+  if (!state.sample || !blob) return;
+  const note = () => $('#ai-note');
+  sheet.draft.ai = 'Recognising the machine…'; if (note()) note().textContent = sheet.draft.ai;
+  try {
+    const r = await state.sample.json(
+      'This is a photo taken in a gym. Identify the exercise machine or equipment. Reply with JSON only: {"name": string, "kind": "legs"|"upper"|"small"}. "name" is the common short name in Title Case, 2-3 words, like "Leg Press", "Lat Pulldown", "Chest Press", "Seated Row". If it is not gym equipment use "name": "".',
+      { images:[blob], modelTier:'quick' });
+    const nm = (r && typeof r.name === 'string') ? r.name.trim().slice(0, 40) : '';
+    if (!sheet || sheet.kind !== 'add') return;
+    if (nm) {
+      if (!sheet.draft.name) sheet.draft.name = nm;
+      if (state.unit === 'kg') sheet.draft.inc = r.kind === 'legs' ? 10 : r.kind === 'small' ? 2.5 : 5;
+      else sheet.draft.inc = r.kind === 'legs' ? 20 : r.kind === 'small' ? 5 : 10;
+      sheet.draft.ai = `Looks like a ${nm}. Change the name if that's wrong.`;
+    } else sheet.draft.ai = 'Couldn’t recognise it. Type a name below.';
+  } catch (e) {
+    sheet.draft.ai = '';
+    if (e?.code === 'not_granted') state.sample = null;
+  }
+  if (sheet?.kind === 'add') drawSheet(false);
+}
+
+/* ---------- examples ---------- */
+function makeExamples() {
+  const now = Date.now(), k = state.unit === 'kg';
+  const mk = (name, start, inc, rows) => {
+    const sessions = rows.map(([daysAgo, w, reps, effort]) => ({ id:uid(), t: now - daysAgo * DAY - 3600e3 * 2, w: k ? w : roundTo(w * 2.2, 5), sets:3, reps, effort }));
+    return { id:uid(), name, photo:null, unit:state.unit, inc: k ? inc : inc * 2, repMin:8, repMax:12, sets:3, start: k ? start : start * 2, createdAt: sessions[0].t - DAY, example:true, sessions };
+  };
+  return [
+    mk('Leg Press', 100, 10, [[33,100,8,3],[30,100,9,3],[26,100,11,2],[23,100,12,2],[19,110,8,3],[16,110,9,3],[12,110,10,2],[9,110,11,2],[5,110,12,2]]),
+    mk('Lat Pulldown', 40, 5, [[32,40,9,3],[28,40,10,2],[25,40,12,3],[21,45,8,3],[18,45,9,3],[14,45,10,3],[11,45,10,3],[7,45,11,2],[3,45,11,3]]),
+    mk('Chest Press', 35, 5, [[31,35,10,2],[27,35,12,2],[24,40,9,3],[20,40,10,3],[17,40,10,4],[13,40,9,4],[10,40,9,4],[6,40,8,4],[2,40,7,4]]),
+  ];
+}
+
+/* ---------- toast ---------- */
+let toastTimer;
+function toast(msg, undo) {
+  const r = $('#toast-root'); clearTimeout(toastTimer);
+  r.innerHTML = `<div class="toast"><span>${esc(msg)}</span>${undo ? '<button data-act="undo">Undo</button>' : ''}</div>`;
+  r._undo = undo;
+  toastTimer = setTimeout(() => { r.innerHTML = ''; r._undo = null; }, 5000);
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', e => {
+  const t = e.target.closest('button,[data-act]'); if (!t) return;
+  const ds = t.dataset;
+
+  if (ds.tab) { state.tab = ds.tab; render(); window.scrollTo({ top:0 }); return; }
+  if (ds.unit && ds.unit !== state.unit) { switchUnit(ds.unit); return; }
+  if (ds.open) { openSheet('log', { id: ds.open }); return; }
+  if (t.id === 'snap-btn' || ds.act === 'add') { openSheet('add'); return; }
+
+  switch (ds.act) {
+    case 'close': closeSheet(); return;
+    case 'examples': state.machines = makeExamples().concat(state.machines); state.machines.forEach(persist); render(); toast('Loaded 3 example machines'); return;
+    case 'clear-examples': state.machines.filter(m => m.example).forEach(m => removeMachine(m.id)); render(); toast('Examples removed'); return;
+    case 'detail': sheet = { kind:'detail', id: sheet.id }; drawSheet(false); return;
+    case 'to-log': sheet = { kind:'log', id: sheet.id }; drawSheet(false); return;
+    case 'undo': { const r = $('#toast-root'); r._undo?.(); r.innerHTML = ''; return; }
+    case 'log': return doLog();
+    case 'save-machine': return saveMachine();
+    case 'del-machine': {
+      if (!sheet.armMachine) { sheet.armMachine = true; drawSheet(false); return; }
+      const m = byId(sheet.id); removeMachine(m.id); closeSheet(); render(); toast(`${m.name} deleted`); return;
+    }
+  }
+
+  if (!sheet) return;
+  const m = sheet.id && byId(sheet.id);
+  if (sheet.kind === 'log' && m) {
+    const d = sheet.draft;
+    if (ds.w) { d.w = roundTo(Math.max(0, d.w + parseFloat(ds.w) * m.inc), m.inc); $('#w-input').value = fmt(d.w); updateLogBtn(); return; }
+    if (ds.setw) { d.w = parseFloat(ds.setw); $('#w-input').value = fmt(d.w); updateLogBtn(); return; }
+    if (ds.sets) { d.sets = Math.min(10, Math.max(1, d.sets + +ds.sets)); $('#sets-out').textContent = d.sets; updateLogBtn(); return; }
+    if (ds.reps) { d.reps = Math.min(50, Math.max(1, d.reps + +ds.reps)); $('#reps-out').textContent = d.reps; updateLogBtn(); return; }
+    if (ds.eff) { d.effort = +ds.eff; document.querySelectorAll('[data-eff]').forEach(b => b.setAttribute('aria-pressed', String(b === t))); return; }
+  }
+  if (sheet.kind === 'detail' && m) {
+    if (ds.delsess) {
+      if (sheet.arm !== ds.delsess) { sheet.arm = ds.delsess; drawSheet(false); return; }
+      m.sessions = m.sessions.filter(x => x.id !== ds.delsess); sheet.arm = null; persist(m); drawSheet(false); render(); return;
+    }
+    if (ds.inc) { m.inc = parseFloat(ds.inc); persist(m); drawSheet(false); render(); return; }
+    if (ds.range) { const r = RANGES.find(x => x.k === ds.range); m.repMin = r.min; m.repMax = r.max; persist(m); drawSheet(false); render(); return; }
+  }
+  if (sheet.kind === 'add') {
+    const d = sheet.draft;
+    if (ds.name) { d.name = ds.name; $('#name-in').value = d.name; document.querySelectorAll('[data-name]').forEach(c => c.setAttribute('aria-pressed', String(c === t))); return; }
+    if (ds.start) { d.start = Math.max(0, roundTo(d.start + +ds.start * d.inc, d.inc)); $('#start-out').innerHTML = `${fmt(d.start)}<small>${state.unit}</small>`; return; }
+    if (ds.incstep) { const o = incOptions(state.unit); const i = Math.max(0, Math.min(o.length - 1, o.indexOf(d.inc) + +ds.incstep)); d.inc = o[i] ?? o[1]; $('#inc-out').innerHTML = `+${fmt(d.inc)}<small>${state.unit}</small>`; return; }
+    if (ds.addrange) { d.range = ds.addrange; document.querySelectorAll('[data-addrange]').forEach(b => b.setAttribute('aria-pressed', String(b === t))); return; }
+  }
+});
+document.addEventListener('change', async e => {
+  if (e.target.id === 'photo-in' && e.target.files?.[0]) {
+    try { const { dataUrl, blob } = await compress(e.target.files[0]); sheet.draft.photo = dataUrl; drawSheet(false); identify(blob); }
+    catch { toast('That photo could not be read. Try another one.'); }
+  }
+  if (e.target.id === 'rephoto' && e.target.files?.[0]) {
+    try { const { dataUrl } = await compress(e.target.files[0]); const m = byId(sheet.id); m.photo = dataUrl; persist(m); drawSheet(false); render(); }
+    catch { toast('That photo could not be read. Try another one.'); }
+  }
+  if (e.target.id === 'name-edit') {
+    const m = byId(sheet.id); const v = e.target.value.trim();
+    if (v && v !== m.name) { m.name = v; persist(m); render(); drawSheet(false); }
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && sheet) closeSheet();
+  if (e.key === 'Enter' && e.target.id === 'w-input') e.target.blur();
+});
+
+function doLog() {
+  const m = byId(sheet.id), d = sheet.draft;
+  const v = parseFloat($('#w-input').value); if (!isNaN(v) && v >= 0) d.w = v;
+  const before = suggest(m).status;
+  const entry = { id:uid(), t:Date.now(), w:d.w, sets:d.sets, reps:d.reps, effort:d.effort };
+  m.sessions = (m.sessions || []).concat(entry);
+  persist(m); closeSheet(); render();
+  const next = suggest(m);
+  const msg = next.status === 'up' ? `Logged. Next time go up to ${fmt(next.w)} ${m.unit}` :
+              next.status === 'down' ? `Logged. Next time ${fmt(next.w)} ${m.unit}` :
+              `Logged ${fmt(d.w)} ${m.unit} · ${d.sets}×${d.reps}`;
+  toast(msg, () => { const mm = byId(m.id); if (!mm) return; mm.sessions = mm.sessions.filter(x => x.id !== entry.id); persist(mm); render(); });
+  void before;
+}
+function saveMachine() {
+  const d = sheet.draft;
+  const name = ($('#name-in')?.value || d.name || '').trim();
+  if (!name) { const n = $('#name-in'); n.focus(); n.placeholder = 'Give it a name first, e.g. Leg Press'; return; }
+  const r = RANGES.find(x => x.k === d.range);
+  const m = { id:uid(), name, photo:d.photo, unit:state.unit, inc:d.inc, repMin:r.min, repMax:r.max, sets:3, start:d.start, createdAt:Date.now(), sessions:[] };
+  state.machines.push(m); persist(m);
+  state.tab = 'machines';
+  openSheet('log', { id:m.id });
+  render();
+  toast(`${name} added`);
+}
+function switchUnit(u) {
+  const f = u === 'lb' ? 2.20462 : 1 / 2.20462;
+  const conv = (w, step) => Math.round(w * f / step) * step;
+  state.machines.forEach(m => {
+    if (m.unit === u) return;
+    m.unit = u; m.start = conv(m.start, 0.5);
+    m.inc = u === 'lb' ? ({1:2.5, 2.5:5, 5:10, 10:20}[m.inc] || 10) : ({2.5:1, 5:2.5, 10:5, 20:10}[m.inc] || 5);
+    (m.sessions || []).forEach(s => s.w = conv(s.w, 0.5));
+    persist(m);
+  });
+  state.unit = u; lsSet('plateup.unit', u); render();
+  if (state.machines.length) toast(`Weights shown in ${u}`);
+}
+
+/* ---------- boot ---------- */
+if (state.machines[0]?.unit) state.unit = state.machines[0].unit;
+render();
+connect();
+})();
+</script>
+
+</body>
+</html>
