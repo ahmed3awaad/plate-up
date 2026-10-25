@@ -284,6 +284,11 @@ input{font:inherit;color:inherit}
 .steps .lbl{font-size:13px;color:var(--muted);font-weight:600;margin-right:2px}
 .steps .chip{padding:7px 12px}
 .hint{font-size:13px;color:var(--faint);text-align:center;margin:0}
+.onb{display:grid;gap:6px;background:var(--surface);border-radius:var(--r-lg);padding:24px 18px;box-shadow:var(--shadow)}
+.onb h2{margin:2px 0 0;font-family:var(--display);font-weight:800;font-size:34px;line-height:1;text-transform:uppercase;text-wrap:balance}
+.onb p{margin:4px 0 0;color:var(--muted);max-width:44ch}
+.onb .big-weight{background:var(--bg);box-shadow:none}
+.onb-err{color:var(--down)!important;font-weight:600;font-size:14px}
 .hdr-actions{display:flex;align-items:center;gap:8px}
 
 /* swipe to delete */
@@ -365,6 +370,8 @@ const state = {
   tab: 'machines',
   cloud: null,       // collection ref when signed in
   sample: null,
+  profile: lsGet('plateup.profile', null), // { kg, cm }
+  editProfile: false,
 };
 const chains = {};
 function saveLocal() { lsSet(LS, state.machines); }
@@ -396,7 +403,7 @@ async function connect() {
         col.onSnapshot(snap => {
           if (!migrated && !snap.metadata.fromCache) {
             migrated = true;
-            if (snap.empty && state.machines.length) {
+            if (!snap.docs.some(d => d.id !== PROFILE_ID) && state.machines.length) {
               state.cloud = col;
               state.machines.forEach(persist);
               render();
@@ -405,7 +412,10 @@ async function connect() {
           }
           if (snap.metadata.fromCache && snap.empty) return;
           state.cloud = col;
-          state.machines = snap.docs.map(d => ({ ...JSON.parse(JSON.stringify(d.data())), id: d.id }));
+          const pd = snap.docs.find(d => d.id === PROFILE_ID);
+          if (pd) { const pv = pd.data(); if (pv?.kg && pv?.cm && (!state.profile || state.profile.kg !== pv.kg || state.profile.cm !== pv.cm)) { state.profile = { kg:pv.kg, cm:pv.cm }; lsSet('plateup.profile', state.profile); } }
+          else if (state.profile && !snap.metadata.fromCache) col.doc(PROFILE_ID).set({ ...state.profile }).catch(() => {});
+          state.machines = snap.docs.filter(d => d.id !== PROFILE_ID).map(d => ({ ...JSON.parse(JSON.stringify(d.data())), id: d.id }));
           saveLocal();
           render();
           refreshSheet();
@@ -417,6 +427,38 @@ async function connect() {
     const s = await c.use('sample');
     if (s) { const lim = await s.limits?.(); if (!lim || lim.images) state.sample = s; }
   } catch {}
+}
+
+/* ---------- starting weights from body size ---------- */
+const PROFILE_ID = '_profile';
+// [pattern, share of body weight for ~10 reps on a typical machine, step in kg]
+const MACHINE_RATIOS = [
+  [/leg\s*press/i, 1.0, 10], [/hack/i, 0.5, 5], [/smith|squat/i, 0.5, 5], [/calf/i, 0.6, 5],
+  [/glute|hip\s*thrust/i, 0.6, 5], [/abduct/i, 0.4, 5], [/adduct/i, 0.4, 5], [/extension/i, 0.35, 5],
+  [/leg\s*curl|hamstring/i, 0.3, 5], [/bicep|curl/i, 0.15, 2.5], [/tricep|push\s*down/i, 0.2, 2.5],
+  [/rear\s*delt|reverse\s*fly/i, 0.15, 2.5], [/fly|pec\s*deck/i, 0.25, 2.5], [/shoulder|overhead/i, 0.25, 2.5],
+  [/chest|bench|incline|dip/i, 0.35, 5], [/pull\s*down|\blat\b|pull\s*up/i, 0.45, 5], [/row/i, 0.45, 5],
+];
+function startFor(name, unit) {
+  const p = state.profile; if (!p || !name) return null;
+  const h = p.cm / 100, cap = 27 * h * h; // carry extra weight above a normal build at a lower share
+  const bw = p.kg > cap ? cap + (p.kg - cap) * 0.3 : p.kg;
+  const [, share, stepKg] = MACHINE_RATIOS.find(r => r[0].test(name)) || [null, 0.3, 5];
+  const kg = bw * share;
+  if (unit === 'lb') { const st = stepKg * 2; return { w: Math.max(st, Math.round(kg * 2.20462 / st) * st), inc: st }; }
+  return { w: Math.max(stepKg, Math.round(kg / stepKg) * stepKg), inc: stepKg };
+}
+function applyStart(name) {
+  if (!sheet || sheet.kind !== 'add') return;
+  const d = sheet.draft; if (d.touched) return;
+  const e = startFor(name, state.unit); if (!e) return;
+  d.start = e.w; d.inc = e.inc;
+  const w = $('#start-in'); if (w) w.value = fmt(d.start);
+  document.querySelectorAll('[data-addinc]').forEach(b => b.setAttribute('aria-pressed', String(parseFloat(b.dataset.addinc) === d.inc)));
+}
+function saveProfile(kg, cm) {
+  state.profile = { kg, cm }; lsSet('plateup.profile', state.profile);
+  if (state.cloud) state.cloud.doc(PROFILE_ID).set({ kg, cm }).catch(() => {});
 }
 
 /* ---------- progression engine ---------- */
@@ -533,6 +575,10 @@ function renderGuide() {
   const u = state.unit;
   const big = u === 'kg' ? '5–10 kg' : '10–20 lb', small = u === 'kg' ? '2.5–5 kg' : '5–10 lb', tiny = u === 'kg' ? '1–2.5 kg' : '2.5–5 lb';
   return `<div class="guide">
+    <section class="g-card" style="grid-template-columns:1fr auto;align-items:center">
+      <div><h3>Your body</h3><p>${state.profile ? `${state.unit === 'lb' ? Math.round(state.profile.kg * 2.20462) + ' lb' : Math.round(state.profile.kg) + ' kg'} · ${Math.round(state.profile.cm)} cm` : 'Not set yet'}</p></div>
+      <button class="btn" data-act="edit-profile" style="padding:10px 18px">${state.profile ? 'Edit' : 'Add'}</button>
+    </section>
     <section class="g-hero">
       <span class="eyebrow" style="color:inherit;opacity:.7">How Plate Up decides</span>
       <h2>Reps first. Then weight.</h2>
@@ -575,6 +621,24 @@ function renderGuide() {
   </div>`;
 }
 
+function renderProfile() {
+  const lb = state.unit === 'lb';
+  const p = state.profile || { kg:75, cm:175 };
+  const shown = lb ? Math.round(p.kg * 2.20462) : Math.round(p.kg);
+  const editing = !!state.profile;
+  return `<section class="onb">
+    <span class="eyebrow">${editing ? 'Your body' : 'Welcome to Plate Up'}</span>
+    <h2>${editing ? 'Update your details' : 'First, a little about you'}</h2>
+    <p>Your weight and height set good starting weights on every machine you add.</p>
+    <div class="field"><label class="eyebrow" for="pw-in">Your weight</label>
+      <div class="big-weight"><button class="step" data-pw="-1" aria-label="Less">−</button><span class="mid"><input id="pw-in" type="text" inputmode="decimal" autocomplete="off" value="${shown}"><small>${lb ? 'lb' : 'kg'}</small></span><button class="step" data-pw="1" aria-label="More">+</button></div></div>
+    <div class="field"><label class="eyebrow" for="ph-in">Your height</label>
+      <div class="big-weight"><button class="step" data-ph="-1" aria-label="Shorter">−</button><span class="mid"><input id="ph-in" type="text" inputmode="numeric" autocomplete="off" value="${Math.round(p.cm)}"><small>cm</small></span><button class="step" data-ph="1" aria-label="Taller">+</button></div></div>
+    <p class="onb-err" id="onb-err" hidden></p>
+    <div class="log-cta"><button class="btn primary block" data-act="save-profile">${editing ? 'Save' : 'Continue'}</button></div>
+    ${editing ? `<div class="under"><button class="link" data-act="cancel-profile">Cancel</button></div>` : `<div class="under"><button class="link" data-act="skip-profile" style="color:var(--muted)">Skip for now</button></div>`}
+  </section>`;
+}
 function render() {
   const app = $('#app');
   const guide = state.tab === 'guide';
@@ -587,6 +651,10 @@ function render() {
     </div>
   </header>`;
   openRow = null;
+  if (!state.profile && !lsGet('plateup.skipProfile', false) || state.editProfile) {
+    app.innerHTML = `<header class="top"><div class="brand"><span class="brand-mark"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--accent-ink)" stroke-width="2.6" stroke-linecap="round"><path d="M6 6v12M18 6v12M2.5 9.5v5M21.5 9.5v5M6 12h12"/></svg></span><span class="brand-name">Plate Up</span></div><div class="unit-toggle" role="group" aria-label="Units"><button data-unit="kg" aria-pressed="${state.unit === 'kg'}">kg</button><button data-unit="lb" aria-pressed="${state.unit === 'lb'}">lb</button></div></header>` + renderProfile();
+    return;
+  }
   app.innerHTML = head + (guide ? renderGuide() : renderHome());
 }
 
@@ -737,10 +805,10 @@ function addSheet() {
 }
 function wireAdd() {
   const w = $('#start-in');
-  w?.addEventListener('input', () => { const v = num(w.value); if (!isNaN(v) && v >= 0) sheet.draft.start = v; });
+  w?.addEventListener('input', () => { const v = num(w.value); if (!isNaN(v) && v >= 0) { sheet.draft.start = v; sheet.draft.touched = true; } });
   w?.addEventListener('focus', () => w.select());
   const n = $('#name-in');
-  n?.addEventListener('input', () => { sheet.draft.name = n.value; document.querySelectorAll('[data-name]').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.name === n.value))); });
+  let nt; n?.addEventListener('input', () => { clearTimeout(nt); nt = setTimeout(() => applyStart(n.value), 350); sheet.draft.name = n.value; document.querySelectorAll('[data-name]').forEach(c => c.setAttribute('aria-pressed', String(c.dataset.name === n.value))); });
 }
 async function compress(file) {
   const url = URL.createObjectURL(file);
@@ -767,8 +835,11 @@ async function identify(blob) {
     if (!sheet || sheet.kind !== 'add') return;
     if (nm) {
       if (!sheet.draft.name) sheet.draft.name = nm;
-      if (state.unit === 'kg') sheet.draft.inc = r.kind === 'legs' ? 10 : r.kind === 'small' ? 2.5 : 5;
-      else sheet.draft.inc = r.kind === 'legs' ? 20 : r.kind === 'small' ? 5 : 10;
+      if (!startFor(sheet.draft.name, state.unit) && !sheet.draft.touched) {
+        if (state.unit === 'kg') sheet.draft.inc = r.kind === 'legs' ? 10 : r.kind === 'small' ? 2.5 : 5;
+        else sheet.draft.inc = r.kind === 'legs' ? 20 : r.kind === 'small' ? 5 : 10;
+      }
+      if (!sheet.draft.touched) { const e = startFor(sheet.draft.name, state.unit); if (e) { sheet.draft.start = e.w; sheet.draft.inc = e.inc; } }
       sheet.draft.ai = `Looks like a ${nm}. Change the name if that's wrong.`;
     } else sheet.draft.ai = 'Couldn’t recognise it. Type a name below.';
   } catch (e) {
@@ -856,6 +927,19 @@ document.addEventListener('click', e => {
   if (ds.delete) { deleteMachine(ds.delete); return; }
   if (ds.open && openRow) { closeOpen(); return; }
 
+  if (ds.pw || ds.ph) {
+    const id = ds.pw ? 'pw-in' : 'ph-in', el = $('#' + id); const v = num(el.value) || 0;
+    el.value = Math.max(0, Math.round(v + +(ds.pw || ds.ph))); return;
+  }
+  if (ds.act === 'save-profile') {
+    const w = num($('#pw-in').value), h = num($('#ph-in').value), err = $('#onb-err');
+    const kg = state.unit === 'lb' ? w / 2.20462 : w;
+    if (!(kg >= 30 && kg <= 300) || !(h >= 120 && h <= 230)) { err.textContent = `Enter a weight between ${state.unit === 'lb' ? '66 and 660 lb' : '30 and 300 kg'} and a height between 120 and 230 cm.`; err.hidden = false; return; }
+    saveProfile(Math.round(kg * 10) / 10, Math.round(h)); state.editProfile = false; render(); window.scrollTo({ top:0 }); return;
+  }
+  if (ds.act === 'skip-profile') { lsSet('plateup.skipProfile', true); render(); return; }
+  if (ds.act === 'edit-profile') { state.editProfile = true; render(); window.scrollTo({ top:0 }); return; }
+  if (ds.act === 'cancel-profile') { state.editProfile = false; render(); return; }
   if (ds.tab) { state.tab = ds.tab; render(); window.scrollTo({ top:0 }); return; }
   if (ds.unit && ds.unit !== state.unit) { switchUnit(ds.unit); return; }
   if (ds.open) { openSheet('log', { id: ds.open }); return; }
@@ -897,8 +981,8 @@ document.addEventListener('click', e => {
   }
   if (sheet.kind === 'add') {
     const d = sheet.draft;
-    if (ds.name) { d.name = ds.name; $('#name-in').value = d.name; document.querySelectorAll('[data-name]').forEach(c => c.setAttribute('aria-pressed', String(c === t))); return; }
-    if (ds.start) { const v = num($('#start-in').value); if (!isNaN(v)) d.start = v; d.start = Math.max(0, roundTo(d.start + +ds.start * d.inc, d.inc)); $('#start-in').value = fmt(d.start); return; }
+    if (ds.name) { d.name = ds.name; $('#name-in').value = d.name; document.querySelectorAll('[data-name]').forEach(c => c.setAttribute('aria-pressed', String(c === t))); applyStart(d.name); return; }
+    if (ds.start) { d.touched = true; const v = num($('#start-in').value); if (!isNaN(v)) d.start = v; d.start = Math.max(0, roundTo(d.start + +ds.start * d.inc, d.inc)); $('#start-in').value = fmt(d.start); return; }
     if (ds.addinc) { d.inc = parseFloat(ds.addinc); document.querySelectorAll('[data-addinc]').forEach(b => b.setAttribute('aria-pressed', String(b === t))); return; }
     if (ds.incstep) { const o = incOptions(state.unit); const i = Math.max(0, Math.min(o.length - 1, o.indexOf(d.inc) + +ds.incstep)); d.inc = o[i] ?? o[1]; $('#inc-out').innerHTML = `+${fmt(d.inc)}<small>${state.unit}</small>`; return; }
     if (ds.addrange) { d.range = ds.addrange; document.querySelectorAll('[data-addrange]').forEach(b => b.setAttribute('aria-pressed', String(b === t))); return; }
