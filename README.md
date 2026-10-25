@@ -5,7 +5,7 @@ A gym progressive-overload tracker. Snap a photo of the machine, tap the suggest
 - One file: `index.html` (no build step, no dependencies)
 - Data is saved in the browser on your device (localStorage)
 - Coaching uses double progression: add reps until you hit the top of your rep range, then add weight
-- Training plans: Push · Pull · Legs, Upper · Lower, Full Body or your own; the home screen shows today's workout
+- Training plans: Push · Pull · Legs, Arnold, Bro Split, Upper · Lower, Full Body or your own; the home screen shows today's workout
 
 ## Run it
 

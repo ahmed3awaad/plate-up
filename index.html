@@ -254,17 +254,17 @@ input{font:inherit;color:inherit}
 .g-table tr:first-child td{border-top:0}
 
 /* hero snap */
-.snap-hero{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:16px;background:var(--accent);color:var(--accent-ink);border-radius:var(--r-lg);padding:18px 20px;cursor:pointer;box-shadow:var(--shadow);transition:transform .12s ease}
+.snap-hero{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:14px;background:var(--accent);color:var(--accent-ink);border-radius:var(--r-lg);padding:12px 16px;cursor:pointer;box-shadow:var(--shadow);transition:transform .12s ease}
 .snap-hero:active{transform:scale(.98)}
-.snap-hero .cam{width:58px;height:58px;border-radius:50%;background:var(--accent-ink);color:var(--accent);display:grid;place-items:center}
-.snap-hero .cam svg{width:28px;height:28px}
-.snap-hero b{display:block;font-family:var(--display);font-weight:800;font-size:28px;line-height:1;text-transform:uppercase;letter-spacing:.02em}
-.snap-hero small{font-size:15px;font-weight:500;opacity:.75}
+.snap-hero .cam{width:46px;height:46px;border-radius:50%;background:var(--accent-ink);color:var(--accent);display:grid;place-items:center}
+.snap-hero .cam svg{width:22px;height:22px}
+.snap-hero b{display:block;font-family:var(--display);font-weight:800;font-size:23px;line-height:1;text-transform:uppercase;letter-spacing:.02em}
+.snap-hero small{font-size:14px;font-weight:500;opacity:.75}
 .snap-hero .arrow{font-family:var(--display);font-weight:800;font-size:28px}
-.snap-hero.big{grid-template-columns:1fr;justify-items:center;text-align:center;padding:44px 24px 40px;gap:18px}
-.snap-hero.big .cam{width:96px;height:96px}
-.snap-hero.big .cam svg{width:44px;height:44px}
-.snap-hero.big b{font-size:40px}
+.snap-hero.big{grid-template-columns:auto 1fr;padding:18px 20px;gap:16px}
+.snap-hero.big .cam{width:60px;height:60px}
+.snap-hero.big .cam svg{width:28px;height:28px}
+.snap-hero.big b{font-size:28px}
 .snap-hero.big .arrow{display:none}
 .week-line{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:16px 2px 0;font-size:14.5px;color:var(--muted)}
 .week-line .dots{display:flex;gap:4px}
@@ -289,6 +289,29 @@ input{font:inherit;color:inherit}
 .onb p{margin:4px 0 0;color:var(--muted);max-width:44ch}
 .onb .big-weight{background:var(--bg);box-shadow:none}
 .onb-err{color:var(--down)!important;font-weight:600;font-size:14px}
+.plan-card{display:grid;gap:14px;width:100%;text-align:left;background:var(--surface);border-radius:var(--r-lg);padding:20px 18px 18px;box-shadow:var(--shadow);margin-top:12px;border:1.5px solid var(--line);transition:transform .12s ease}
+.plan-card:active{transform:scale(.985)}
+.pc-text{display:grid;gap:4px}
+.pc-text b{font-family:var(--display);font-weight:800;font-size:28px;line-height:1;text-transform:uppercase}
+.pc-text small{color:var(--muted);font-size:15px;line-height:1.4;max-width:40ch}
+.pc-week{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pc-week span{background:var(--surface-2);border-radius:12px;padding:10px 12px;display:grid;gap:1px}
+.pc-week small{font-size:12px;color:var(--muted);font-weight:600}
+.pc-week b{font-family:var(--display);font-weight:800;font-size:20px;text-transform:uppercase}
+.pc-week span.on{background:var(--accent);color:var(--accent-ink)}
+.pc-week span.on small{color:var(--accent-ink);opacity:.7}
+.pc-splits{font-size:13px;color:var(--faint);line-height:1.4}
+.pc-go{display:flex;justify-content:center;align-items:center;gap:8px;background:var(--fg);color:var(--bg);border-radius:999px;padding:14px;font-weight:700;font-size:16px}
+.how{list-style:none;margin:0 0 16px;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;counter-reset:h}
+.how li{counter-increment:h;background:var(--surface);border-radius:var(--r-md);padding:12px 10px;display:grid;gap:2px;box-shadow:var(--shadow);min-width:0}
+.how li::before{content:counter(h);font-family:var(--display);font-weight:800;font-size:15px;width:24px;height:24px;border-radius:7px;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;margin-bottom:6px}
+.how b{font-size:14px;line-height:1.2}
+.how small{font-size:12px;color:var(--muted);line-height:1.25}
+.split-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.freq{font-family:var(--display);font-weight:700;font-size:13px;letter-spacing:.06em;text-transform:uppercase;background:var(--surface-2);color:var(--muted);padding:4px 9px;border-radius:999px;white-space:nowrap}
+.split-days{display:flex;flex-wrap:wrap;gap:6px}
+.split-days i{font-style:normal;font-family:var(--display);font-weight:700;font-size:14px;text-transform:uppercase;letter-spacing:.03em;background:var(--accent);color:var(--accent-ink);padding:4px 10px;border-radius:8px}
+.split.own{border:1.5px dashed var(--line);box-shadow:none;background:transparent}
 .plan-cta{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;width:100%;text-align:left;background:var(--surface);border-radius:var(--r-lg);padding:16px 18px;box-shadow:var(--shadow);margin-top:10px}
 .plan-cta .pc-ico{width:46px;height:46px;border-radius:13px;background:var(--surface-2);display:grid;place-items:center}
 .plan-cta .pc-ico svg{width:24px;height:24px}
@@ -308,10 +331,11 @@ input{font:inherit;color:inherit}
 .all-done{margin:0;font-weight:600;color:var(--up)}
 .swipe.done .card{opacity:.6}
 .split-list{display:grid;gap:10px}
-.split{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;column-gap:12px;align-items:center;text-align:left;background:var(--surface);border-radius:var(--r-lg);padding:16px 18px;box-shadow:var(--shadow)}
+.split{display:grid;gap:8px;text-align:left;background:var(--surface);border-radius:var(--r-lg);padding:16px;box-shadow:var(--shadow);width:100%;min-width:0}
+.split:active{transform:scale(.985)}
 .split b{font-family:var(--display);font-weight:800;font-size:24px;text-transform:uppercase;line-height:1.05}
-.split small{grid-column:1;color:var(--muted);font-size:14px}
-.split .arrow{grid-column:2;grid-row:1 / 3}
+.split small{color:var(--muted);font-size:14px;line-height:1.35}
+
 .plan-days{display:grid;gap:12px}
 .plan-day{background:var(--surface);border-radius:var(--r-lg);padding:14px;box-shadow:var(--shadow);display:grid;gap:12px}
 .plan-day-h{display:flex;align-items:center;gap:8px}
@@ -477,7 +501,7 @@ async function connect() {
 const PROFILE_ID = '_profile', PLAN_ID = '_plan', META = [PROFILE_ID, PLAN_ID];
 // [pattern, share of body weight for ~10 reps on a typical machine, step in kg]
 const MACHINE_RATIOS = [
-  [/leg\s*press/i, 1.0, 10], [/hack/i, 0.5, 5], [/smith|squat/i, 0.5, 5], [/calf/i, 0.6, 5],
+  [/leg\s*press/i, 1.0, 10], [/hack/i, 0.5, 5], [/smith|squat/i, 0.5, 5], [/calf/i, 0.6, 5], [/lateral/i, 0.12, 2.5], [/shrug/i, 0.5, 5], [/kickback/i, 0.2, 2.5], [/back\s*ext/i, 0.3, 5],
   [/glute|hip\s*thrust/i, 0.6, 5], [/abduct/i, 0.4, 5], [/adduct/i, 0.4, 5], [/extension/i, 0.35, 5],
   [/leg\s*curl|hamstring/i, 0.3, 5], [/bicep|curl/i, 0.15, 2.5], [/tricep|push\s*down/i, 0.2, 2.5],
   [/rear\s*delt|reverse\s*fly/i, 0.15, 2.5], [/fly|pec\s*deck/i, 0.25, 2.5], [/shoulder|overhead/i, 0.25, 2.5],
@@ -507,16 +531,26 @@ function saveProfile(kg, cm) {
 
 /* ---------- training plan ---------- */
 const SPLITS = {
-  ppl:  { label:'Push · Pull · Legs', sub:'3 days. The classic.', days:[
+  ppl:  { label:'Push · Pull · Legs', freq:'3 or 6 days', who:'The most popular split. Great for most people.', days:[
     ['Push', ['Chest Press','Shoulder Press','Pec Fly','Tricep Pushdown'], ['Incline Press','Lateral Raise','Dip Machine']],
     ['Pull', ['Lat Pulldown','Seated Row','Rear Delt Fly','Bicep Curl'], ['Cable Row','Pullover','Preacher Curl']],
     ['Legs', ['Leg Press','Leg Extension','Leg Curl','Calf Raise'], ['Hack Squat','Hip Abductor','Hip Adductor','Glute Kickback']] ] },
-  ul:   { label:'Upper · Lower', sub:'2 days, repeat twice a week.', days:[
+  arnold: { label:'Arnold Split', freq:'3 or 6 days', who:'Arnold’s classic. Big pump, pairs muscles that work well together.', days:[
+    ['Chest & Back', ['Chest Press','Incline Press','Pec Fly','Lat Pulldown','Seated Row'], ['Cable Row','Pullover','Dip Machine']],
+    ['Shoulders & Arms', ['Shoulder Press','Lateral Raise','Rear Delt Fly','Bicep Curl','Tricep Pushdown'], ['Preacher Curl','Dip Machine']],
+    ['Legs', ['Leg Press','Leg Extension','Leg Curl','Calf Raise'], ['Hack Squat','Hip Abductor','Hip Adductor']] ] },
+  bro:  { label:'Bro Split', freq:'5 days', who:'One muscle group per day. Lots of volume for each.', days:[
+    ['Chest', ['Chest Press','Incline Press','Pec Fly'], ['Dip Machine']],
+    ['Back', ['Lat Pulldown','Seated Row','Cable Row'], ['Pullover','Back Extension']],
+    ['Shoulders', ['Shoulder Press','Lateral Raise','Rear Delt Fly'], ['Shrug Machine']],
+    ['Arms', ['Bicep Curl','Preacher Curl','Tricep Pushdown'], ['Dip Machine','Hammer Curl']],
+    ['Legs', ['Leg Press','Leg Extension','Leg Curl','Calf Raise'], ['Hack Squat','Hip Abductor']] ] },
+  ul:   { label:'Upper · Lower', freq:'4 days', who:'Simple and balanced. Each muscle twice a week.', days:[
     ['Upper', ['Chest Press','Lat Pulldown','Shoulder Press','Seated Row','Bicep Curl','Tricep Pushdown'], ['Pec Fly','Rear Delt Fly','Lateral Raise']],
     ['Lower', ['Leg Press','Leg Curl','Leg Extension','Calf Raise'], ['Hack Squat','Hip Abductor','Hip Adductor']] ] },
-  full: { label:'Full Body', sub:'1 workout, 2–3 times a week.', days:[
+  full: { label:'Full Body', freq:'2–3 days', who:'Best for beginners or a busy week.', days:[
     ['Full Body', ['Leg Press','Chest Press','Lat Pulldown','Seated Row','Shoulder Press','Leg Curl'], ['Leg Extension','Bicep Curl','Tricep Pushdown','Calf Raise']] ] },
-  custom: { label:'My own', sub:'Name your days and add machines.', days:[['Day 1', [], ['Leg Press','Chest Press','Lat Pulldown','Seated Row','Shoulder Press']]] },
+  custom: { label:'Build my own', freq:'Any', who:'Name your own days and pick the machines.', days:[['Day 1', [], ['Leg Press','Chest Press','Lat Pulldown','Seated Row','Shoulder Press']]] },
 };
 function savePlan() {
   lsSet('plateup.plan', state.plan);
@@ -544,9 +578,18 @@ function draftFromPlan() {
 function planSheet() {
   const d = sheet.draft ||= { step:1 };
   if (d.step === 1) return `
-  <div class="sheet-head"><div class="sheet-title"><h3>Set up your plan</h3><p>Pick how you split your week.</p></div>
+  <div class="sheet-head"><div class="sheet-title"><h3>Set up your plan</h3></div>
     <button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button></div>
-  <div class="split-list">${Object.entries(SPLITS).map(([k, v]) => `<button class="split" data-split="${k}"><b>${v.label}</b><small>${v.sub}</small><span class="arrow" aria-hidden="true">→</span></button>`).join('')}</div>`;
+  <ol class="how">
+    <li><b>Pick a split</b><small>How you divide your week</small></li>
+    <li><b>Tick your machines</b><small>We suggest them for you</small></li>
+    <li><b>Train</b><small>The app shows today’s workout</small></li>
+  </ol>
+  <div class="split-list">${Object.entries(SPLITS).map(([k, v]) => `<button class="split ${k === 'custom' ? 'own' : ''}" data-split="${k}">
+      <span class="split-top"><b>${v.label}</b><span class="freq">${v.freq}</span></span>
+      <small>${v.who}</small>
+      ${k === 'custom' ? '' : `<span class="split-days">${v.days.map(d => `<i>${esc(d[0])}</i>`).join('')}</span>`}
+    </button>`).join('')}</div>`;
   const count = new Set(d.days.flatMap(x => x.items.filter(i => i.on).map(i => i.name.toLowerCase()))).size;
   return `
   <div class="sheet-head">${d.editing ? '' : `<button class="icon-btn" data-act="plan-back" aria-label="Back">←</button>`}<div class="sheet-title"><h3>${d.editing ? 'Edit your plan' : esc(SPLITS[d.split].label)}</h3><p>Tap to add or remove machines.</p></div>
@@ -659,14 +702,20 @@ function cardHtml(m, done) {
   </button></div>`;
 }
 function planCta() {
-  return `<button class="plan-cta" data-act="plan"><span class="pc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h6"/></svg></span><span><b>Set up your plan</b><small>Push · Pull · Legs and more. Add all your machines in a minute.</small></span><span class="arrow" aria-hidden="true">→</span></button>`;
+  return `<button class="plan-card" data-act="plan">
+    <span class="pc-text"><span class="eyebrow">Plan your week</span><b>Set up your training plan</b>
+      <small>Pick a split, we add your machines, and every time you open the app it shows what to train today.</small></span>
+    <span class="pc-week" aria-hidden="true">${[['Mon','Push'],['Tue','Pull'],['Wed','Legs']].map(([d, n], i) => `<span class="${i === 0 ? 'on' : ''}"><small>${d}</small><b>${n}</b></span>`).join('')}</span>
+    <span class="pc-splits">Push Pull Legs · Arnold · Bro Split · Upper Lower · Full Body</span>
+    <span class="pc-go">Choose a split <span aria-hidden="true">→</span></span>
+  </button>`;
 }
 function renderHome() {
   const ms = state.machines;
   if (!ms.length && !state.plan) return `
     <label class="snap-hero big" for="snap-in">
       <span class="cam">${ICON.cam}</span>
-      <span><b>Snap a machine</b><small>Take a photo of the machine you’re on.<br>Plate Up remembers the weight for next time.</small></span>
+      <span><b>Snap a machine</b><small>Take a photo of the machine you’re on</small></span>
     </label>
     ${planCta()}
     <div class="under"><button class="link" data-act="examples">Or see an example first</button></div>`;
