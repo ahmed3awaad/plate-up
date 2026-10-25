@@ -278,6 +278,13 @@ input{font:inherit;color:inherit}
 .big-weight output small{font-size:18px;color:var(--muted);font-weight:700;margin-left:4px;text-transform:uppercase}
 .hdr-actions{display:flex;align-items:center;gap:8px}
 
+/* swipe to delete */
+.swipe{position:relative;border-radius:var(--r-lg);overflow:hidden;box-shadow:var(--shadow)}
+.swipe .card{position:relative;z-index:1;width:100%;touch-action:pan-y;box-shadow:none;-webkit-user-select:none;user-select:none}
+.del-btn{position:absolute;inset:0;z-index:0;display:flex;justify-content:flex-end;align-items:center;gap:8px;padding-right:26px;background:var(--down);color:#fff;font-weight:700;font-size:16px;border-radius:var(--r-lg)}
+.del-btn svg{width:20px;height:20px}
+.swipe:not(.moving) .del-btn{visibility:hidden}
+
 /* toast */
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:60;background:var(--fg);color:var(--bg);border-radius:999px;padding:12px 10px 12px 18px;display:flex;gap:14px;align-items:center;font-weight:600;font-size:15px;box-shadow:var(--shadow);max-width:calc(100% - 32px);width:max-content;animation:toastIn .25s ease}
 @keyframes toastIn{from{transform:translate(-50%,16px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
@@ -501,13 +508,14 @@ function renderHome() {
   h += `<div class="list">` + sorted.map(m => {
     const s = suggest(m), last = m.sessions?.at(-1);
     const lastTxt = last ? `Last ${fmt(last.w)} ${m.unit} · ${ago(last.t)}` : 'Tap to log your first set';
-    return `<button class="card" data-open="${m.id}">
+    return `<div class="swipe"><button class="del-btn" data-delete="${m.id}" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>Delete</button><button class="card" data-open="${m.id}">
       ${thumb(m)}
       <span class="card-main"><span class="card-name">${esc(m.name)}</span><span class="card-last">${esc(lastTxt)}</span>${pill(s.status)}</span>
       <span class="card-next"><span class="eyebrow" style="font-size:11px">Next</span><span class="w">${fmt(s.w)}<small>${esc(m.unit)}</small></span></span>
-    </button>`;
+    </button></div>`;
   }).join('') + `</div>`;
-  h += `<p class="sync">${state.cloud ? 'Saved to your Claude account' : 'Saved on this phone'}</p>`;
+  if (ms.length) h += `<p class="sync" style="margin-top:14px">Swipe a machine left to delete it</p>`;
+  h += `<p class="sync" style="margin-top:4px">${state.cloud ? 'Saved to your Claude account' : 'Saved on this phone'}</p>`;
   return h;
 }
 
@@ -569,6 +577,7 @@ function render() {
       ${guide ? '' : `<button class="icon-btn" data-tab="guide" aria-label="How it works" style="font-family:var(--display);font-weight:800;font-size:19px">?</button>`}
     </div>
   </header>`;
+  openRow = null;
   app.innerHTML = head + (guide ? renderGuide() : renderHome());
 }
 
@@ -776,10 +785,60 @@ function toast(msg, undo) {
   toastTimer = setTimeout(() => { r.innerHTML = ''; r._undo = null; }, 5000);
 }
 
+/* ---------- swipe to delete ---------- */
+let swipe = null, openRow = null, suppressClick = false;
+const OPEN_X = -104;
+function setX(card, x, anim) {
+  card.style.transition = anim ? 'transform .24s cubic-bezier(.2,.8,.2,1)' : 'none';
+  card.style.transform = x ? `translateX(${x}px)` : '';
+  const row = card.parentElement; clearTimeout(row._t);
+  if (x) row.classList.add('moving'); else row._t = setTimeout(() => row.classList.remove('moving'), anim ? 260 : 0);
+}
+function closeOpen(except) { if (openRow && openRow !== except) { setX(openRow, 0, true); openRow = null; } }
+document.addEventListener('pointerdown', e => {
+  const card = e.target.closest('.swipe .card');
+  if (!card) { if (!e.target.closest('.del-btn')) closeOpen(); return; }
+  const wasOpen = openRow === card;
+  closeOpen(card);
+  swipe = { card, x0:e.clientX, y0:e.clientY, base: wasOpen ? OPEN_X : 0, x: wasOpen ? OPEN_X : 0, active:false, id:e.pointerId };
+});
+document.addEventListener('pointermove', e => {
+  if (!swipe || e.pointerId !== swipe.id) return;
+  const dx = e.clientX - swipe.x0, dy = e.clientY - swipe.y0;
+  if (!swipe.active) {
+    if (Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy) * 1.2) { swipe.active = true; try { swipe.card.setPointerCapture(e.pointerId); } catch {} }
+    else if (Math.abs(dy) > 10) { swipe = null; return; }
+    else return;
+  }
+  swipe.x = Math.min(0, swipe.base + dx);
+  setX(swipe.card, swipe.x, false);
+});
+function endSwipe() {
+  if (!swipe) return;
+  const s = swipe; swipe = null;
+  if (!s.active) return;
+  suppressClick = true; setTimeout(() => { suppressClick = false; }, 350);
+  const w = s.card.offsetWidth;
+  if (s.x < -w * 0.6) { setX(s.card, -w, true); const id = s.card.dataset.open; setTimeout(() => deleteMachine(id), 180); }
+  else if (s.x < OPEN_X / 2) { setX(s.card, OPEN_X, true); openRow = s.card; }
+  else { setX(s.card, 0, true); if (openRow === s.card) openRow = null; }
+}
+document.addEventListener('pointerup', endSwipe);
+document.addEventListener('pointercancel', endSwipe);
+function deleteMachine(id) {
+  const m = byId(id); if (!m) return;
+  const copy = JSON.parse(JSON.stringify(m));
+  removeMachine(id); render();
+  toast(`${m.name} deleted`, () => { if (byId(copy.id)) return; state.machines.push(copy); persist(copy); render(); });
+}
+
 /* ---------- events ---------- */
 document.addEventListener('click', e => {
   const t = e.target.closest('button,[data-act]'); if (!t) return;
   const ds = t.dataset;
+  if (suppressClick) return;
+  if (ds.delete) { deleteMachine(ds.delete); return; }
+  if (ds.open && openRow) { closeOpen(); return; }
 
   if (ds.tab) { state.tab = ds.tab; render(); window.scrollTo({ top:0 }); return; }
   if (ds.unit && ds.unit !== state.unit) { switchUnit(ds.unit); return; }
