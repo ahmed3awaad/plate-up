@@ -289,6 +289,43 @@ input{font:inherit;color:inherit}
 .onb p{margin:4px 0 0;color:var(--muted);max-width:44ch}
 .onb .big-weight{background:var(--bg);box-shadow:none}
 .onb-err{color:var(--down)!important;font-weight:600;font-size:14px}
+.plan-cta{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;width:100%;text-align:left;background:var(--surface);border-radius:var(--r-lg);padding:16px 18px;box-shadow:var(--shadow);margin-top:10px}
+.plan-cta .pc-ico{width:46px;height:46px;border-radius:13px;background:var(--surface-2);display:grid;place-items:center}
+.plan-cta .pc-ico svg{width:24px;height:24px}
+.plan-cta b{display:block;font-weight:700;font-size:17px}
+.plan-cta small{display:block;font-size:14px;color:var(--muted);line-height:1.3;margin-top:2px}
+.plan-cta .arrow,.split .arrow{font-family:var(--display);font-weight:800;font-size:24px;color:var(--muted)}
+.today{margin:24px 2px 12px;display:grid;gap:10px}
+.today-h{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.today-h h2{margin:2px 0 0;font-family:var(--display);font-weight:800;font-size:40px;line-height:.9;text-transform:uppercase;overflow-wrap:anywhere}
+.today-count{text-align:right}
+.today-count b{font-family:var(--display);font-weight:800;font-size:30px;line-height:1;font-variant-numeric:tabular-nums}
+.today-count small{display:block;color:var(--muted);font-size:13px}
+.progress{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.progress i{display:block;height:100%;background:var(--accent);border-radius:3px;transition:width .3s ease}
+.day-tabs{display:flex;gap:6px;flex-wrap:wrap}
+.chip.ghost{background:transparent;color:var(--accent-text);padding-inline:8px}
+.all-done{margin:0;font-weight:600;color:var(--up)}
+.swipe.done .card{opacity:.6}
+.split-list{display:grid;gap:10px}
+.split{display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;column-gap:12px;align-items:center;text-align:left;background:var(--surface);border-radius:var(--r-lg);padding:16px 18px;box-shadow:var(--shadow)}
+.split b{font-family:var(--display);font-weight:800;font-size:24px;text-transform:uppercase;line-height:1.05}
+.split small{grid-column:1;color:var(--muted);font-size:14px}
+.split .arrow{grid-column:2;grid-row:1 / 3}
+.plan-days{display:grid;gap:12px}
+.plan-day{background:var(--surface);border-radius:var(--r-lg);padding:14px;box-shadow:var(--shadow);display:grid;gap:12px}
+.plan-day-h{display:flex;align-items:center;gap:8px}
+.day-name{flex:1;min-width:0;border:0;background:transparent;font-family:var(--display);font-weight:800;font-size:26px;text-transform:uppercase;padding:2px 0;border-bottom:2px dashed var(--line)}
+.mini{font-size:13px;font-weight:600;color:var(--muted);padding:6px 8px;border-radius:8px;white-space:nowrap}
+.chip.tick[aria-pressed="false"]{background:transparent;box-shadow:inset 0 0 0 1.5px var(--line);color:var(--muted)}
+.add-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}
+.plan-day,.plan-days{min-width:0}
+.plan-day{grid-template-columns:minmax(0,1fr)}
+.day-name{width:0}
+.add-row .text-input{min-width:0;width:100%}
+.add-row .text-input{padding:11px 14px;font-size:16px}
+.add-row .btn{padding:11px 18px}
+.snap-mini{position:absolute;inset:auto 0 0 0;background:var(--scrim);color:#fff;font-size:11px;font-weight:700;text-align:center;padding:3px 0}
 .hdr-actions{display:flex;align-items:center;gap:8px}
 
 /* swipe to delete */
@@ -372,6 +409,8 @@ const state = {
   sample: null,
   profile: lsGet('plateup.profile', null), // { kg, cm }
   editProfile: false,
+  plan: lsGet('plateup.plan', null), // { split, days:[{id,name,machineIds}] }
+  dayPick: null,
 };
 const chains = {};
 function saveLocal() { lsSet(LS, state.machines); }
@@ -385,6 +424,7 @@ function persist(m) {
 }
 function removeMachine(id) {
   state.machines = state.machines.filter(m => m.id !== id);
+  if (state.plan?.days.some(d => d.machineIds.includes(id))) { state.plan.days.forEach(d => d.machineIds = d.machineIds.filter(x => x !== id)); savePlan(); }
   saveLocal();
   if (state.cloud) chains[id] = (chains[id] || Promise.resolve()).then(() => state.cloud.doc(id).delete()).catch(() => {});
 }
@@ -403,7 +443,8 @@ async function connect() {
         col.onSnapshot(snap => {
           if (!migrated && !snap.metadata.fromCache) {
             migrated = true;
-            if (!snap.docs.some(d => d.id !== PROFILE_ID) && state.machines.length) {
+            if (!snap.docs.some(d => !META.includes(d.id)) && state.machines.length) {
+              if (state.plan) col.doc(PLAN_ID).set(JSON.parse(JSON.stringify(state.plan))).catch(() => {});
               state.cloud = col;
               state.machines.forEach(persist);
               render();
@@ -415,7 +456,10 @@ async function connect() {
           const pd = snap.docs.find(d => d.id === PROFILE_ID);
           if (pd) { const pv = pd.data(); if (pv?.kg && pv?.cm && (!state.profile || state.profile.kg !== pv.kg || state.profile.cm !== pv.cm)) { state.profile = { kg:pv.kg, cm:pv.cm }; lsSet('plateup.profile', state.profile); } }
           else if (state.profile && !snap.metadata.fromCache) col.doc(PROFILE_ID).set({ ...state.profile }).catch(() => {});
-          state.machines = snap.docs.filter(d => d.id !== PROFILE_ID).map(d => ({ ...JSON.parse(JSON.stringify(d.data())), id: d.id }));
+          const pl = snap.docs.find(d => d.id === PLAN_ID);
+          if (pl) { const pv = JSON.parse(JSON.stringify(pl.data() || {})); state.plan = pv.days?.length ? pv : null; lsSet('plateup.plan', state.plan); }
+          else if (state.plan && !snap.metadata.fromCache) col.doc(PLAN_ID).set(JSON.parse(JSON.stringify(state.plan))).catch(() => {});
+          state.machines = snap.docs.filter(d => !META.includes(d.id)).map(d => ({ ...JSON.parse(JSON.stringify(d.data())), id: d.id }));
           saveLocal();
           render();
           refreshSheet();
@@ -430,7 +474,7 @@ async function connect() {
 }
 
 /* ---------- starting weights from body size ---------- */
-const PROFILE_ID = '_profile';
+const PROFILE_ID = '_profile', PLAN_ID = '_plan', META = [PROFILE_ID, PLAN_ID];
 // [pattern, share of body weight for ~10 reps on a typical machine, step in kg]
 const MACHINE_RATIOS = [
   [/leg\s*press/i, 1.0, 10], [/hack/i, 0.5, 5], [/smith|squat/i, 0.5, 5], [/calf/i, 0.6, 5],
@@ -459,6 +503,82 @@ function applyStart(name) {
 function saveProfile(kg, cm) {
   state.profile = { kg, cm }; lsSet('plateup.profile', state.profile);
   if (state.cloud) state.cloud.doc(PROFILE_ID).set({ kg, cm }).catch(() => {});
+}
+
+/* ---------- training plan ---------- */
+const SPLITS = {
+  ppl:  { label:'Push · Pull · Legs', sub:'3 days. The classic.', days:[
+    ['Push', ['Chest Press','Shoulder Press','Pec Fly','Tricep Pushdown'], ['Incline Press','Lateral Raise','Dip Machine']],
+    ['Pull', ['Lat Pulldown','Seated Row','Rear Delt Fly','Bicep Curl'], ['Cable Row','Pullover','Preacher Curl']],
+    ['Legs', ['Leg Press','Leg Extension','Leg Curl','Calf Raise'], ['Hack Squat','Hip Abductor','Hip Adductor','Glute Kickback']] ] },
+  ul:   { label:'Upper · Lower', sub:'2 days, repeat twice a week.', days:[
+    ['Upper', ['Chest Press','Lat Pulldown','Shoulder Press','Seated Row','Bicep Curl','Tricep Pushdown'], ['Pec Fly','Rear Delt Fly','Lateral Raise']],
+    ['Lower', ['Leg Press','Leg Curl','Leg Extension','Calf Raise'], ['Hack Squat','Hip Abductor','Hip Adductor']] ] },
+  full: { label:'Full Body', sub:'1 workout, 2–3 times a week.', days:[
+    ['Full Body', ['Leg Press','Chest Press','Lat Pulldown','Seated Row','Shoulder Press','Leg Curl'], ['Leg Extension','Bicep Curl','Tricep Pushdown','Calf Raise']] ] },
+  custom: { label:'My own', sub:'Name your days and add machines.', days:[['Day 1', [], ['Leg Press','Chest Press','Lat Pulldown','Seated Row','Shoulder Press']]] },
+};
+function savePlan() {
+  lsSet('plateup.plan', state.plan);
+  if (!state.cloud) return;
+  const ref = state.cloud.doc(PLAN_ID);
+  chains[PLAN_ID] = (chains[PLAN_ID] || Promise.resolve()).then(() => state.plan ? ref.set(JSON.parse(JSON.stringify(state.plan))) : ref.delete()).catch(() => {});
+}
+const doneToday = m => (m.sessions || []).some(x => startOfDay(x.t) === startOfDay(Date.now()));
+function lastTrained(day) { let t = 0; day.machineIds.forEach(id => { const m = byId(id); const l = m?.sessions?.at(-1)?.t; if (l > t) t = l; }); return t; }
+function todayDay() {
+  const days = state.plan?.days || []; if (!days.length) return null;
+  if (state.dayPick && days.some(d => d.id === state.dayPick)) return days.find(d => d.id === state.dayPick);
+  let li = -1, lt = 0; days.forEach((d, i) => { const t = lastTrained(d); if (t > lt) { lt = t; li = i; } });
+  if (li < 0) return days[0];
+  if (startOfDay(lt) === startOfDay(Date.now())) return days[li];
+  return days[(li + 1) % days.length];
+}
+function draftFromSplit(k) {
+  return { step:2, split:k, days: SPLITS[k].days.map(([name, on, extra]) => ({ id:uid(), name, items: on.map(n => ({ name:n, on:true })).concat(extra.map(n => ({ name:n, on:false }))) })) };
+}
+function draftFromPlan() {
+  const extra = n => ['Pec Fly','Rear Delt Fly','Lateral Raise','Calf Raise','Leg Extension'].filter(x => !n.includes(x)).slice(0, 3);
+  return { step:2, split:state.plan.split, editing:true, days: state.plan.days.map(d => { const names = d.machineIds.map(id => byId(id)?.name).filter(Boolean); return { id:d.id, name:d.name, items: names.map(n => ({ name:n, on:true })).concat(extra(names).map(n => ({ name:n, on:false }))) }; }) };
+}
+function planSheet() {
+  const d = sheet.draft ||= { step:1 };
+  if (d.step === 1) return `
+  <div class="sheet-head"><div class="sheet-title"><h3>Set up your plan</h3><p>Pick how you split your week.</p></div>
+    <button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button></div>
+  <div class="split-list">${Object.entries(SPLITS).map(([k, v]) => `<button class="split" data-split="${k}"><b>${v.label}</b><small>${v.sub}</small><span class="arrow" aria-hidden="true">→</span></button>`).join('')}</div>`;
+  const count = new Set(d.days.flatMap(x => x.items.filter(i => i.on).map(i => i.name.toLowerCase()))).size;
+  return `
+  <div class="sheet-head">${d.editing ? '' : `<button class="icon-btn" data-act="plan-back" aria-label="Back">←</button>`}<div class="sheet-title"><h3>${d.editing ? 'Edit your plan' : esc(SPLITS[d.split].label)}</h3><p>Tap to add or remove machines.</p></div>
+    <button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button></div>
+  <div class="plan-days">${d.days.map((day, i) => `
+    <section class="plan-day">
+      <div class="plan-day-h"><label class="sr" for="dayname-${i}">Day name</label><input id="dayname-${i}" class="day-name" data-dayname="${i}" value="${esc(day.name)}" maxlength="20">
+        ${d.days.length > 1 ? `<button class="mini" data-delday="${i}">Remove day</button>` : ''}</div>
+      <div class="chips-wrap">${day.items.map((it, j) => `<button class="chip tick" data-tog="${i}:${j}" aria-pressed="${it.on}">${it.on ? '✓ ' : '+ '}${esc(it.name)}</button>`).join('')}</div>
+      <div class="add-row"><label class="sr" for="additem-${i}">Add a machine</label><input id="additem-${i}" class="text-input" placeholder="Add another machine" maxlength="40" autocomplete="off" data-addkey="${i}"><button class="btn" data-additem="${i}">Add</button></div>
+    </section>`).join('')}</div>
+  <button class="btn block" data-act="add-day" style="margin-top:10px">+ Add a day</button>
+  <div class="log-cta"><button class="btn primary block" data-act="save-plan">Save plan · ${count} machine${count === 1 ? '' : 's'}</button></div>
+  ${d.editing ? `<div class="under"><button class="link" data-act="remove-plan" style="color:var(--down)">${d.armRemove ? 'Tap again to remove the plan' : 'Remove plan'}</button></div>` : ''}`;
+}
+function savePlanDraft() {
+  const d = sheet.draft;
+  const byName = new Map(state.machines.map(m => [m.name.toLowerCase(), m]));
+  const now = Date.now(), u = state.unit;
+  const days = d.days.map(day => ({ id:day.id, name:(day.name || '').trim() || 'Day', machineIds: [...new Set(day.items.filter(i => i.on).map(it => {
+    const key = it.name.trim().toLowerCase(); let m = byName.get(key);
+    if (!m) {
+      const e = startFor(it.name, u) || { w: u === 'kg' ? 20 : 40, inc: u === 'kg' ? 5 : 10 };
+      m = { id:uid(), name:it.name.trim(), photo:null, unit:u, inc:e.inc, repMin:8, repMax:12, sets:3, start:e.w, createdAt:now, sessions:[] };
+      state.machines.push(m); persist(m); byName.set(key, m);
+    }
+    return m.id;
+  }))] })).filter(day => day.machineIds.length);
+  if (!days.length) { toast('Pick at least one machine first'); return; }
+  state.plan = { split:d.split, days }; state.dayPick = null; savePlan();
+  closeSheet(); render(); window.scrollTo({ top:0 });
+  toast(d.editing ? 'Plan updated' : `Plan saved. Today is ${todayDay().name}`);
 }
 
 /* ---------- progression engine ---------- */
@@ -529,13 +649,26 @@ function weekStats() {
   const ready = state.machines.filter(m => suggest(m).status === 'up').length;
   return { days, sessions, volume, ready, trainDays: sessionDays.size };
 }
+function cardHtml(m, done) {
+  const s = suggest(m), last = m.sessions?.at(-1);
+  const lastTxt = done ? `Done · ${fmt(last.w)} ${m.unit} · ${last.sets}×${last.reps}` : last ? `Last ${fmt(last.w)} ${m.unit} · ${ago(last.t)}` : 'Tap to log your first set';
+  return `<div class="swipe ${done ? 'done' : ''}"><button class="del-btn" data-delete="${m.id}" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>Delete</button><button class="card" data-open="${m.id}">
+    ${thumb(m)}
+    <span class="card-main"><span class="card-name">${esc(m.name)}</span><span class="card-last">${esc(lastTxt)}</span>${done ? '<span class="pill up">✓ Done</span>' : pill(s.status)}</span>
+    <span class="card-next"><span class="eyebrow" style="font-size:11px">${done ? 'Next time' : 'Next'}</span><span class="w">${fmt(done ? s.w : s.w)}<small>${esc(m.unit)}</small></span></span>
+  </button></div>`;
+}
+function planCta() {
+  return `<button class="plan-cta" data-act="plan"><span class="pc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M8 3v4M16 3v4M4 10h16M8 14h3M8 17h6"/></svg></span><span><b>Set up your plan</b><small>Push · Pull · Legs and more. Add all your machines in a minute.</small></span><span class="arrow" aria-hidden="true">→</span></button>`;
+}
 function renderHome() {
   const ms = state.machines;
-  if (!ms.length) return `
+  if (!ms.length && !state.plan) return `
     <label class="snap-hero big" for="snap-in">
       <span class="cam">${ICON.cam}</span>
       <span><b>Snap a machine</b><small>Take a photo of the machine you’re on.<br>Plate Up remembers the weight for next time.</small></span>
     </label>
+    ${planCta()}
     <div class="under"><button class="link" data-act="examples">Or see an example first</button></div>`;
   const w = weekStats();
   let h = `
@@ -544,28 +677,39 @@ function renderHome() {
     <span><b>Snap a machine</b><small>Add a new one</small></span>
     <span class="arrow" aria-hidden="true">→</span>
   </label>
+  ${state.plan ? '' : planCta()}
   <div class="week-line">
     <span class="dots" aria-hidden="true">${w.days.map(d => `<i class="${d.on ? 'on' : ''}"></i>`).join('')}</span>
     <span><strong>${w.trainDays}</strong> ${w.trainDays === 1 ? 'day' : 'days'} this week</span>
     ${w.ready ? `<span>·</span><span class="up">${w.ready} ready to go up</span>` : ''}
   </div>`;
   const order = { up:0, down:1, hold:2, new:3 };
-  const sorted = ms.slice().sort((a, b) => {
+  const sortMs = list => list.slice().sort((a, b) => {
     const la = a.sessions?.at(-1)?.t || a.createdAt, lb = b.sessions?.at(-1)?.t || b.createdAt;
     return (order[suggest(a).status] - order[suggest(b).status]) || (lb - la);
   });
-  h += `<div class="section-h"><h2>Your machines</h2></div>`;
-  if (ms.some(m => m.example)) h += `<div class="examples-note"><span>Example machines with made-up history.</span><button data-act="clear-examples">Remove</button></div>`;
-  h += `<div class="list">` + sorted.map(m => {
-    const s = suggest(m), last = m.sessions?.at(-1);
-    const lastTxt = last ? `Last ${fmt(last.w)} ${m.unit} · ${ago(last.t)}` : 'Tap to log your first set';
-    return `<div class="swipe"><button class="del-btn" data-delete="${m.id}" tabindex="-1"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3"/></svg>Delete</button><button class="card" data-open="${m.id}">
-      ${thumb(m)}
-      <span class="card-main"><span class="card-name">${esc(m.name)}</span><span class="card-last">${esc(lastTxt)}</span>${pill(s.status)}</span>
-      <span class="card-next"><span class="eyebrow" style="font-size:11px">Next</span><span class="w">${fmt(s.w)}<small>${esc(m.unit)}</small></span></span>
-    </button></div>`;
-  }).join('') + `</div>`;
-  if (ms.length) h += `<p class="sync" style="margin-top:14px">Swipe a machine left to delete it</p>`;
+  let rest = ms;
+  const day = todayDay();
+  if (day) {
+    const dms = day.machineIds.map(byId).filter(Boolean);
+    const nDone = dms.filter(doneToday).length;
+    const todo = dms.filter(m => !doneToday(m)), done = dms.filter(doneToday);
+    h += `<section class="today">
+      <div class="today-h"><div><span class="eyebrow">Today</span><h2>${esc(day.name)}</h2></div>
+        <div class="today-count"><b>${nDone}</b><small>of ${dms.length} done</small></div></div>
+      <div class="progress" aria-hidden="true"><i style="width:${dms.length ? nDone / dms.length * 100 : 0}%"></i></div>
+      <div class="day-tabs" role="group" aria-label="Pick a day">${state.plan.days.map(d => `<button class="chip" data-day="${d.id}" aria-pressed="${d.id === day.id}">${esc(d.name)}</button>`).join('')}<button class="chip ghost" data-act="edit-plan">Edit plan</button></div>
+      ${nDone && nDone === dms.length ? `<p class="all-done">Workout done. Nice work.</p>` : ''}
+    </section>
+    <div class="list">${todo.map(m => cardHtml(m, false)).join('')}${done.map(m => cardHtml(m, true)).join('')}</div>`;
+    rest = ms.filter(m => !day.machineIds.includes(m.id));
+  }
+  if (rest.length) {
+    h += `<div class="section-h"><h2>${day ? 'Other machines' : 'Your machines'}</h2></div>`;
+    if (rest.some(m => m.example)) h += `<div class="examples-note"><span>Example machines with made-up history.</span><button data-act="clear-examples">Remove</button></div>`;
+    h += `<div class="list">${sortMs(rest).map(m => cardHtml(m, false)).join('')}</div>`;
+  }
+  if (ms.length) h += `<p class="sync" style="margin-top:18px">Swipe a machine left to delete it</p>`;
   h += `<p class="sync" style="margin-top:4px">${state.cloud ? 'Saved to your Claude account' : 'Saved on this phone'}</p>`;
   return h;
 }
@@ -662,17 +806,18 @@ function render() {
 let sheet = null; // { kind, id, draft }
 function openSheet(kind, opts = {}) { sheet = { kind, ...opts }; drawSheet(true); }
 function closeSheet() { sheet = null; $('#sheet-root').innerHTML = ''; document.body.style.overflow = ''; }
-function refreshSheet() { if (sheet && sheet.kind !== 'add') { if (!byId(sheet.id)) return closeSheet(); drawSheet(false); } }
+function refreshSheet() { if (sheet && (sheet.kind === 'log' || sheet.kind === 'detail')) { if (!byId(sheet.id)) return closeSheet(); drawSheet(false); } }
 function drawSheet(fresh) {
   const root = $('#sheet-root');
   const scroll = root.querySelector('.sheet')?.scrollTop || 0;
-  const inner = sheet.kind === 'log' ? logSheet() : sheet.kind === 'detail' ? detailSheet() : addSheet();
+  const inner = sheet.kind === 'log' ? logSheet() : sheet.kind === 'detail' ? detailSheet() : sheet.kind === 'plan' ? planSheet() : addSheet();
   root.innerHTML = `<div class="sheet-wrap" role="dialog" aria-modal="true"><div class="scrim" data-act="close"></div><div class="sheet" style="${fresh ? '' : 'animation:none'}"><div class="grabber"></div>${inner}</div></div>`;
   const s = root.querySelector('.sheet'); if (!fresh) s.scrollTop = scroll;
   root.querySelector('.scrim').style.animation = fresh ? '' : 'none';
   document.body.style.overflow = 'hidden';
   if (sheet.kind === 'add') wireAdd();
   if (sheet.kind === 'log') wireLog();
+  if (sheet.kind === 'plan') wirePlan();
 }
 
 /* log */
@@ -684,7 +829,7 @@ function logSheet() {
   if (last) quick.push({ w:last.w, label:'Last', });
   if (!last || s.w !== last.w) quick.push({ w:s.w, label:'Suggested' });
   return `
-  <div class="sheet-head">${thumb(m)}<div class="sheet-title"><h3>${esc(m.name)}</h3><p>${last ? `Last time ${fmt(last.w)} ${m.unit} · ${last.sets}×${last.reps} · ${ago(last.t)}` : `${m.repMin}–${m.repMax} reps · +${fmt(m.inc)} ${m.unit} steps`}</p></div>
+  <div class="sheet-head">${m.photo ? thumb(m) : `<label for="rephoto" style="position:relative;cursor:pointer" aria-label="Take a photo of this machine">${thumb(m)}<span class="snap-mini">SNAP IT</span></label><input id="rephoto" class="sr" type="file" accept="image/*" capture="environment">`}<div class="sheet-title"><h3>${esc(m.name)}</h3><p>${last ? `Last time ${fmt(last.w)} ${m.unit} · ${last.sets}×${last.reps} · ${ago(last.t)}` : `${m.repMin}–${m.repMax} reps · +${fmt(m.inc)} ${m.unit} steps`}</p></div>
     <button class="icon-btn" data-act="detail" aria-label="History and settings">${ICON.chart}</button>
     <button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button></div>
   <div class="coach">${pill(s.status)}<p><strong>${esc(s.title)}</strong></p><p class="why">${esc(s.msg)}</p></div>
@@ -707,6 +852,10 @@ function logSheet() {
   <div class="field"><div class="field-h"><span class="eyebrow">How hard was the last set?</span></div>
     <div class="effort">${EFFORT.map(e => `<button data-eff="${e.v}" aria-pressed="${d.effort === e.v}">${meter(e.v)}<b>${e.label}</b><small>${e.sub}</small></button>`).join('')}</div></div>
   <div class="log-cta"><button class="btn primary block" data-act="log" id="log-btn">Log ${fmt(d.w)} ${esc(m.unit)} · ${d.sets}×${d.reps}</button></div>`;
+}
+function wirePlan() {
+  document.querySelectorAll('[data-dayname]').forEach(inp => inp.addEventListener('input', () => { sheet.draft.days[+inp.dataset.dayname].name = inp.value; }));
+  document.querySelectorAll('[data-addkey]').forEach(inp => inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); document.querySelector(`[data-additem="${inp.dataset.addkey}"]`).click(); } }));
 }
 function wireLog() {
   const inp = $('#w-input');
@@ -784,7 +933,7 @@ const stepChips = (u, cur, key) => `<div class="steps" role="group" aria-label="
 /* add */
 function addSheet() {
   const d = sheet.draft ||= {};
-  d.name ??= ''; d.start ??= state.unit === 'kg' ? 20 : 40; d.inc ??= state.unit === 'kg' ? 5 : 10; d.range ??= 'build'; d.ai ??= '';
+  d.name ??= ''; if (d.dayId === undefined) d.dayId = todayDay()?.id || ''; d.start ??= state.unit === 'kg' ? 20 : 40; d.inc ??= state.unit === 'kg' ? 5 : 10; d.range ??= 'build'; d.ai ??= '';
   return `
   <div class="sheet-head"><div class="sheet-title"><h3>New machine</h3></div>
     <button class="icon-btn" data-act="close" aria-label="Close">${ICON.close}</button></div>
@@ -797,6 +946,7 @@ function addSheet() {
     <input id="name-in" class="text-input" placeholder="e.g. Leg Press" value="${esc(d.name)}" maxlength="40" autocomplete="off">
     <p class="ai-note" id="ai-note" style="margin:0">${esc(d.ai)}</p>
     <div class="chips-wrap" id="name-chips">${NAMES.slice(0, 6).map(n => `<button class="chip" data-name="${esc(n)}" aria-pressed="${d.name === n}">${esc(n)}</button>`).join('')}</div></div>
+  ${state.plan ? `<div class="field"><span class="eyebrow">Add to your plan</span><div class="chips-wrap">${state.plan.days.map(x => `<button class="chip" data-addday="${x.id}" aria-pressed="${d.dayId === x.id}">${esc(x.name)}</button>`).join('')}<button class="chip" data-addday="" aria-pressed="${!d.dayId}">No day</button></div></div>` : ''}
   <div class="field"><span class="eyebrow">Weight you’re using</span>
     <div class="big-weight"><button class="step" data-start="-1" aria-label="Less">−</button><span class="mid"><input id="start-in" type="text" inputmode="decimal" autocomplete="off" step="any" min="0" value="${fmt(d.start)}" aria-label="Weight in ${state.unit}"><small>${state.unit}</small></span><button class="step" data-start="1" aria-label="More">+</button></div>
     ${stepChips(state.unit, d.inc, 'addinc')}
@@ -940,6 +1090,22 @@ document.addEventListener('click', e => {
   if (ds.act === 'skip-profile') { lsSet('plateup.skipProfile', true); render(); return; }
   if (ds.act === 'edit-profile') { state.editProfile = true; render(); window.scrollTo({ top:0 }); return; }
   if (ds.act === 'cancel-profile') { state.editProfile = false; render(); return; }
+  if (ds.day) { state.dayPick = ds.day; render(); return; }
+  if (ds.act === 'plan') { openSheet('plan'); return; }
+  if (ds.act === 'edit-plan') { openSheet('plan', { draft: draftFromPlan() }); return; }
+  if (sheet?.kind === 'plan') {
+    const d = sheet.draft;
+    if (ds.split) { sheet.draft = draftFromSplit(ds.split); drawSheet(false); $('#sheet-root .sheet').scrollTop = 0; return; }
+    if (ds.act === 'plan-back') { sheet.draft = { step:1 }; drawSheet(false); return; }
+    if (ds.tog) { const [i, j] = ds.tog.split(':').map(Number); const it = d.days[i].items[j]; it.on = !it.on; drawSheet(false); return; }
+    if (ds.additem) { const i = +ds.additem, inp = $('#additem-' + i), v = inp.value.trim(); if (!v) { inp.focus(); return; }
+      const ex = d.days[i].items.find(x => x.name.toLowerCase() === v.toLowerCase()); if (ex) ex.on = true; else d.days[i].items.push({ name:v, on:true });
+      drawSheet(false); $('#additem-' + i)?.focus(); return; }
+    if (ds.delday) { d.days.splice(+ds.delday, 1); drawSheet(false); return; }
+    if (ds.act === 'add-day') { d.days.push({ id:uid(), name:'Day ' + (d.days.length + 1), items:['Leg Press','Chest Press','Lat Pulldown','Seated Row','Shoulder Press'].map(n => ({ name:n, on:false })) }); drawSheet(false); const sh = $('#sheet-root .sheet'); sh.scrollTop = sh.scrollHeight; return; }
+    if (ds.act === 'save-plan') { savePlanDraft(); return; }
+    if (ds.act === 'remove-plan') { if (!d.armRemove) { d.armRemove = true; drawSheet(false); return; } state.plan = null; state.dayPick = null; savePlan(); closeSheet(); render(); toast('Plan removed. Your machines are still here.'); return; }
+  }
   if (ds.tab) { state.tab = ds.tab; render(); window.scrollTo({ top:0 }); return; }
   if (ds.unit && ds.unit !== state.unit) { switchUnit(ds.unit); return; }
   if (ds.open) { openSheet('log', { id: ds.open }); return; }
@@ -983,6 +1149,7 @@ document.addEventListener('click', e => {
     const d = sheet.draft;
     if (ds.name) { d.name = ds.name; $('#name-in').value = d.name; document.querySelectorAll('[data-name]').forEach(c => c.setAttribute('aria-pressed', String(c === t))); applyStart(d.name); return; }
     if (ds.start) { d.touched = true; const v = num($('#start-in').value); if (!isNaN(v)) d.start = v; d.start = Math.max(0, roundTo(d.start + +ds.start * d.inc, d.inc)); $('#start-in').value = fmt(d.start); return; }
+    if (ds.addday !== undefined) { d.dayId = ds.addday; document.querySelectorAll('[data-addday]').forEach(b => b.setAttribute('aria-pressed', String(b === t))); return; }
     if (ds.addinc) { d.inc = parseFloat(ds.addinc); document.querySelectorAll('[data-addinc]').forEach(b => b.setAttribute('aria-pressed', String(b === t))); return; }
     if (ds.incstep) { const o = incOptions(state.unit); const i = Math.max(0, Math.min(o.length - 1, o.indexOf(d.inc) + +ds.incstep)); d.inc = o[i] ?? o[1]; $('#inc-out').innerHTML = `+${fmt(d.inc)}<small>${state.unit}</small>`; return; }
     if (ds.addrange) { d.range = ds.addrange; document.querySelectorAll('[data-addrange]').forEach(b => b.setAttribute('aria-pressed', String(b === t))); return; }
@@ -1037,6 +1204,7 @@ function saveMachine() {
   const m = { id:uid(), name, photo:d.photo || null, unit:state.unit, inc:d.inc, repMin:r.min, repMax:r.max, sets:3, start:d.start, createdAt:now,
     sessions:[{ id:uid(), t:now, w:d.start, sets:3, reps:Math.round((r.min + r.max) / 2), effort:2 }] };
   state.machines.push(m); persist(m);
+  const pd = d.dayId && state.plan?.days.find(x => x.id === d.dayId); if (pd) { pd.machineIds.push(m.id); savePlan(); }
   state.tab = 'machines';
   closeSheet(); render(); window.scrollTo({ top:0 });
   toast(`${name} saved at ${fmt(d.start)} ${m.unit}`, () => { removeMachine(m.id); render(); });
